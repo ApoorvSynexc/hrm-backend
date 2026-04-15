@@ -4,13 +4,10 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
 } from '@nestjs/common';
-import type { JwtPayload } from '../../common/decorators/current-user.decorator.js';
 import { TenantService } from './tenant.service.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
-import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { Roles } from '../../common/decorators/roles.decorator.js';
+import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
 @Controller('tenants')
 export class TenantController {
@@ -18,16 +15,8 @@ export class TenantController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles('SUPER_ADMIN')
-  create(
-    @Body() dto: CreateTenantDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    // Manual SUPER_ADMIN check (until RolesGuard is implemented)
-    if (user.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Only SUPER_ADMIN can create tenants');
-    }
-
+  @Permissions('manage:all')
+  create(@Body() dto: CreateTenantDto) {
     return this.tenantService.createTenant(dto);
   }
 }

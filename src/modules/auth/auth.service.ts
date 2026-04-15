@@ -4,7 +4,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../database/prisma/prisma.service.js';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
@@ -17,7 +16,6 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private configService: ConfigService,
   ) {}
 
   async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {

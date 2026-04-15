@@ -9,7 +9,6 @@ import { AuthService } from './auth.service.js';
 import { LoginDto, RefreshTokenDto, LogoutDto } from './dto/index.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { JwtPayload } from '../common/decorators/current-user.decorator.js';
 
 @Controller('auth')
 export class AuthController {

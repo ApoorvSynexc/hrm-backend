@@ -96,11 +96,11 @@ export class TenantService {
       );
 
       // 3. Fetch tenant-scoped permissions to copy
-      // Exclude: all, tenant (all variants), user, role, permission (system-only perms)
+      // Exclude: all, user, role, permission (system-only perms that should not be copied to tenants)
       const permissionsToCopy = await tx.permission.findMany({
         where: {
           tenantId: null,
-          subject: { notIn: ['all', 'tenant', 'user', 'role', 'permission'] },
+          subject: { notIn: ['all', 'user', 'role', 'permission'] },
         },
       });
 
@@ -171,6 +171,8 @@ export class TenantService {
         data: {
           email: dto.adminEmail,
           passwordHash,
+          firstName: 'Admin',
+          lastName: 'User',
           tenantId: newTenant.id,
           roleId: adminRole.id,
           status: 'ACTIVE',

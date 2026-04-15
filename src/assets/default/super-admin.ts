@@ -4,7 +4,7 @@ export const DEFAULT_SUPER_ADMIN = {
   passwordHash: '12345678',
   firstName: 'Super',
   lastName: 'Admin',
-  isActive: true,
+  status: 'ACTIVE',
   tenantId: null,
   roleName: 'SUPER_ADMIN',
 } as const;

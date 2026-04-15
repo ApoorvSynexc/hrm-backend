@@ -33,7 +33,7 @@ export class AuthService {
         where: { slug: dto.tenantSlug },
       });
 
-      if (!tenant || !tenant.isActive) {
+      if (!tenant || tenant.status !== 'ACTIVE') {
         throw new UnauthorizedException('Invalid or inactive tenant');
       }
 
@@ -43,7 +43,7 @@ export class AuthService {
       });
     }
 
-    if (!user || !user.isActive) {
+    if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -98,7 +98,7 @@ export class AuthService {
       include: { role: true },
     });
 
-    if (!user || !user.isActive) {
+    if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('User is inactive or deleted');
     }
 

@@ -110,7 +110,7 @@ async function seedSuperAdminUser() {
       passwordHash: hashedPassword,
       firstName: DEFAULT_SUPER_ADMIN.firstName,
       lastName: DEFAULT_SUPER_ADMIN.lastName,
-      isActive: DEFAULT_SUPER_ADMIN.isActive,
+      status: DEFAULT_SUPER_ADMIN.status,
       roleId: superAdminRole.id,
     },
     create: {
@@ -120,7 +120,7 @@ async function seedSuperAdminUser() {
       passwordHash: hashedPassword,
       firstName: DEFAULT_SUPER_ADMIN.firstName,
       lastName: DEFAULT_SUPER_ADMIN.lastName,
-      isActive: DEFAULT_SUPER_ADMIN.isActive,
+      status: DEFAULT_SUPER_ADMIN.status,
       roleId: superAdminRole.id,
     },
   });

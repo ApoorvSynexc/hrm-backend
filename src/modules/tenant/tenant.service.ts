@@ -173,7 +173,7 @@ export class TenantService {
           passwordHash,
           tenantId: newTenant.id,
           roleId: adminRole.id,
-          isActive: true,
+          status: 'ACTIVE',
         },
       });
 

@@ -40,7 +40,7 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return { message: 'Login successful', data: null };
+    return { message: 'auth.login_success', data: null };
   }
 
   @Public()
@@ -72,7 +72,7 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return { message: 'Token refreshed', data: null };
+    return { message: 'auth.token_refreshed', data: null };
   }
 
   @Post('logout')
@@ -102,6 +102,6 @@ export class AuthController {
       sameSite: 'strict',
     });
 
-    return { message: 'Logout successful', data: null };
+    return { message: 'auth.logout_success', data: null };
   }
 }

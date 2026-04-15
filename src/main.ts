@@ -7,6 +7,7 @@ import {
   AllExceptionsFilter,
   LoggingInterceptor,
   TransformInterceptor,
+  I18nService,
 } from './common/index.js';
 import { ValidationPipe } from './common/pipes/validation.pipe.js';
 
@@ -24,7 +25,8 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
 
   // Global interceptors — order matters: logging wraps transform
-  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
+  const i18nService = app.get(I18nService);
+  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(i18nService));
 
   // Global validation pipe — returns first error only
   app.useGlobalPipes(

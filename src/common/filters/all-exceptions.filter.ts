@@ -7,7 +7,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { Request } from 'express';
 import { Prisma } from '../../../generated/prisma/client.js';
+import { MESSAGES, LanguageCode } from '../constants/messages.js';
 
 interface ErrorResponse {
   status: false;
@@ -22,50 +24,101 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
+  /**
+   * Detect language from request headers
+   * Checks: X-Language header, then Accept-Language header
+   * Defaults to 'en'
+   */
+  private detectLanguage(request: Request): LanguageCode {
+    const xLanguage = (request.headers['x-language'] as string)?.toLowerCase();
+    if (xLanguage === 'ru' || xLanguage === 'en') {
+      return xLanguage as LanguageCode;
+    }
+
+    const acceptLanguage = request.headers['accept-language'] as string;
+    if (acceptLanguage) {
+      const match = acceptLanguage.match(/^(en|ru)/i);
+      if (match) {
+        return match[1].toLowerCase() as LanguageCode;
+      }
+    }
+
+    return 'en';
+  }
+
+  /**
+   * Translate message key to the detected language
+   */
+  private translate(key: string, language: LanguageCode): string {
+    const translations = MESSAGES[key as keyof typeof MESSAGES];
+    if (!translations) {
+      return key;
+    }
+    return translations[language] || translations.en || key;
+  }
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<{ url: string; method: string }>();
+    const request = ctx.getRequest<Request & { url: string; method: string }>();
+    const language = this.detectLanguage(request);
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | string[] = 'Internal server error';
+    let messageKey: string = 'error.internal_server';
+    let customMessage: string | null = null;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const response = exception.getResponse();
       if (typeof response === 'string') {
-        message = response;
+        customMessage = response;
       } else if (typeof response === 'object' && response !== null) {
         const res = response as Record<string, unknown>;
-        message = (res['message'] as string | string[]) ?? exception.message;
+        customMessage = (res['message'] as string | string[]) as string ?? exception.message;
+      }
+
+      // Map HTTP status to message keys
+      if (statusCode === HttpStatus.UNAUTHORIZED) {
+        messageKey = 'error.unauthorized';
+      } else if (statusCode === HttpStatus.FORBIDDEN) {
+        messageKey = 'error.forbidden';
+      } else if (statusCode === HttpStatus.NOT_FOUND) {
+        messageKey = 'error.not_found';
+      } else if (statusCode === HttpStatus.BAD_REQUEST) {
+        messageKey = 'error.bad_request';
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       // Handle Prisma-specific errors
       statusCode = HttpStatus.BAD_REQUEST;
+      messageKey = 'error.bad_request';
 
       switch (exception.code) {
         case 'P2002':
-          message = `Unique constraint violation on field: ${(exception.meta?.['target'] as string[])?.join(', ')}`;
+          customMessage = `Unique constraint violation on field: ${(exception.meta?.['target'] as string[])?.join(', ')}`;
           break;
         case 'P2025':
           statusCode = HttpStatus.NOT_FOUND;
-          message = 'Record not found';
+          messageKey = 'error.not_found';
           break;
         case 'P2003':
-          message = 'Foreign key constraint violation';
+          customMessage = 'Foreign key constraint violation';
           break;
         case 'P2014':
-          message = 'Required relation violation';
+          customMessage = 'Required relation violation';
           break;
         default:
-          message = `Database error: ${exception.code}`;
+          customMessage = `Database error: ${exception.code}`;
       }
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       statusCode = HttpStatus.BAD_REQUEST;
-      message = 'Invalid data provided to database';
+      messageKey = 'error.bad_request';
+      customMessage = 'Invalid data provided to database';
     } else if (exception instanceof Error) {
-      message = exception.message;
+      customMessage = exception.message;
     }
+
+    // Get translated message, or use custom message if set
+    const message = customMessage || this.translate(messageKey, language);
 
     const responseBody: ErrorResponse = {
       status: false,

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { Observable, map } from 'rxjs';
+import { I18nService } from '../services/i18n.service.js';
 
 export interface ApiResponse<T> {
   status: boolean;
@@ -23,9 +24,13 @@ export interface ApiResponse<T> {
  * 1. Plain data → wrapped as { message: 'Success', data: <value>, meta: null }
  * 2. { message: '...', data: ... } → extracted and wrapped
  * 3. { message: '...', data: ..., meta: {...} } → extracted with meta
+ *
+ * Messages are translated based on Accept-Language or X-Language header
  */
 @Injectable()
 export class TransformInterceptor<T = any> implements NestInterceptor<T, ApiResponse<T>> {
+  constructor(private i18n: I18nService) {}
+
   intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -48,20 +53,25 @@ export class TransformInterceptor<T = any> implements NestInterceptor<T, ApiResp
             data: T;
             meta?: Record<string, any> | null;
           };
+
+          // Translate message if it's a message key, otherwise use as-is
+          const translatedMessage = this.i18n.translate(message as any);
+
           return {
             status: true,
             statusCode,
-            message,
+            message: translatedMessage,
             data: returnData,
             meta: meta ?? null,
           };
         }
 
         // Default: wrap entire return value in data with 'Success' message
+        const defaultMessage = this.i18n.translate('common.success');
         return {
           status: true,
           statusCode,
-          message: 'Success',
+          message: defaultMessage,
           data: data ?? null,
           meta: null,
         };

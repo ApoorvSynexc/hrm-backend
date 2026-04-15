@@ -7,17 +7,14 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
   BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './user.service.js';
 import { CreateUserDto, UpdateUserDto } from './dto/index.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator.js';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private userService: UserService) {}
 

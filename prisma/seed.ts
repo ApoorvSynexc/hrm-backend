@@ -34,11 +34,8 @@ async function seedGlobalRoles() {
 }
 
 async function seedGlobalPermissions() {
-  const globalPermissions = DEFAULT_PERMISSIONS.filter(
-    (permission) => 'tenantId' in permission && permission.tenantId === null,
-  );
-
-  for (const permission of globalPermissions) {
+  // All permissions are global (no tenantId)
+  for (const permission of DEFAULT_PERMISSIONS) {
     await prisma.permission.upsert({
       where: { id: permission.id },
       update: {
@@ -46,7 +43,12 @@ async function seedGlobalPermissions() {
         subject: permission.subject,
         description: permission.description,
       },
-      create: permission,
+      create: {
+        id: permission.id,
+        action: permission.action,
+        subject: permission.subject,
+        description: permission.description,
+      },
     });
   }
 }
@@ -57,9 +59,7 @@ async function seedSuperAdminRolePermissions() {
     throw new Error('SUPER_ADMIN role not found in DEFAULT_ROLES');
   }
 
-  const permissions = await prisma.permission.findMany({
-    where: { tenantId: null },
-  });
+  const permissions = await prisma.permission.findMany();
   const permissionByKey = new Map(
     permissions.map((permission) => [
       permissionKey(permission.action, permission.subject),

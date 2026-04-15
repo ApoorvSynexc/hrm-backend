@@ -95,31 +95,22 @@ export class TenantService {
         (role) => role.name !== 'SUPER_ADMIN',
       );
 
-      // 3. Fetch tenant-scoped permissions to copy
-      // Exclude: all, user, role, permission (system-only perms that should not be copied to tenants)
-      const permissionsToCopy = await tx.permission.findMany({
+      // 3. Fetch global permissions
+      // Exclude: all, user, role, permission (system-only perms that should not be mapped to tenant roles)
+      const globalPermissions = await tx.permission.findMany({
         where: {
-          tenantId: null,
           subject: { notIn: ['all', 'user', 'role', 'permission'] },
         },
       });
 
-      // 4. Create tenant-scoped copies of permissions
-      const newPermissionMap = new Map<string, string>(); // key -> permissionId
-      for (const perm of permissionsToCopy) {
-        const newPerm = await tx.permission.create({
-          data: {
-            tenantId: newTenant.id,
-            action: perm.action,
-            subject: perm.subject,
-            description: perm.description,
-          },
-        });
+      // 4. Build a map of global permissions for quick lookup
+      const globalPermissionMap = new Map<string, string>(); // key -> permissionId
+      for (const perm of globalPermissions) {
         const key = `${perm.action}:${perm.subject}`;
-        newPermissionMap.set(key, newPerm.id);
+        globalPermissionMap.set(key, perm.id);
       }
 
-      // 5. Create tenant-scoped roles and link permissions
+      // 5. Create tenant-scoped roles and map them to global permissions
       for (const roleDefinition of tenantRolesToCreate) {
         // Create tenant-scoped role
         const newRole = await tx.role.create({
@@ -137,19 +128,19 @@ export class TenantService {
 
         if (defaultPermsForRole && Array.isArray(defaultPermsForRole)) {
           for (const permKey of defaultPermsForRole) {
-            const permissionId = newPermissionMap.get(permKey);
+            const permissionId = globalPermissionMap.get(permKey);
 
             if (permissionId) {
-              // Only link if the permission exists in our tenant-scoped permissions
+              // Map global permission to this tenant's role
               await tx.rolePermission.create({
                 data: {
                   tenantId: newTenant.id,
                   roleId: newRole.id,
-                  permissionId,
+                  permissionId, // Reference the global permission
                 },
               });
             }
-            // Skip system-only permissions that don't exist in newPermissionMap
+            // Skip system-only permissions that don't exist in globalPermissionMap
           }
         }
       }

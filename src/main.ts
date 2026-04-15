@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { HttpAdapterHost } from '@nestjs/core';
+import { HttpAdapterHost, Reflector } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import {
@@ -24,7 +24,8 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
 
   // Global interceptors — order matters: logging wraps transform
-  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
+  const reflector = app.get(Reflector);
+  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(reflector));
 
   // Global validation pipe — returns first error only
   app.useGlobalPipes(

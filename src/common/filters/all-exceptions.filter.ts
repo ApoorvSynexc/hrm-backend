@@ -10,12 +10,10 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { Prisma } from '../../../generated/prisma/client.js';
 
 interface ErrorResponse {
+  status: false;
   statusCode: number;
-  timestamp: string;
-  path: string;
-  method: string;
   message: string | string[];
-  error: string;
+  data: null;
 }
 
 @Catch()
@@ -31,7 +29,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
-    let error = 'InternalServerError';
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -41,13 +38,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       } else if (typeof response === 'object' && response !== null) {
         const res = response as Record<string, unknown>;
         message = (res['message'] as string | string[]) ?? exception.message;
-        error = (res['error'] as string) ?? exception.name;
       }
-      error = exception.name;
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       // Handle Prisma-specific errors
       statusCode = HttpStatus.BAD_REQUEST;
-      error = 'DatabaseError';
 
       switch (exception.code) {
         case 'P2002':
@@ -56,7 +50,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
         case 'P2025':
           statusCode = HttpStatus.NOT_FOUND;
           message = 'Record not found';
-          error = 'NotFound';
           break;
         case 'P2003':
           message = 'Foreign key constraint violation';
@@ -70,18 +63,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       statusCode = HttpStatus.BAD_REQUEST;
       message = 'Invalid data provided to database';
-      error = 'ValidationError';
     } else if (exception instanceof Error) {
       message = exception.message;
     }
 
     const responseBody: ErrorResponse = {
+      status: false,
       statusCode,
-      timestamp: new Date().toISOString(),
-      path: httpAdapter.getRequestUrl(ctx.getRequest()),
-      method: request.method,
       message,
-      error,
+      data: null,
     };
 
     // Log server errors

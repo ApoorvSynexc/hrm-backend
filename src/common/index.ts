@@ -2,6 +2,7 @@
 export * from './decorators/current-user.decorator.js';
 export * from './decorators/public.decorator.js';
 export * from './decorators/permissions.decorator.js';
+export * from './decorators/response-message.decorator.js';
 export * from './decorators/roles.decorator.js';
 
 // Filters

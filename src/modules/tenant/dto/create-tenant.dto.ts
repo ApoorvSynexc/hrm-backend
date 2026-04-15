@@ -4,6 +4,7 @@ import {
   MaxLength,
   MinLength,
   Matches,
+  IsEmail,
 } from 'class-validator';
 
 export class CreateTenantDto {
@@ -20,4 +21,13 @@ export class CreateTenantDto {
     message: 'slug must contain only lowercase letters, numbers, and hyphens',
   })
   slug: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  adminEmail!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  adminPassword!: string;
 }

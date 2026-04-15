@@ -4,11 +4,14 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Res,
+  Req,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
-import { LoginDto, RefreshTokenDto, LogoutDto } from './dto/index.js';
-import { Public } from '../common/decorators/public.decorator.js';
-import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { LoginDto } from './dto/index.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 
 @Controller('auth')
 export class AuthController {
@@ -17,23 +20,88 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Res() res: Response) {
+    const { accessToken, refreshToken } = await this.authService.login(dto);
+
+    // Set access token cookie (15 minutes)
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    // Set refresh token cookie (7 days)
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    res.json({ message: 'Login successful' });
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refreshTokens(dto);
+  async refresh(@Req() req: Request, @Res() res: Response) {
+    const refreshTokenFromCookie = req.cookies?.refreshToken;
+    if (!refreshTokenFromCookie) {
+      res.status(401).json({ message: 'Refresh token not found in cookies' });
+      return;
+    }
+
+    const { accessToken, refreshToken } = await this.authService.refreshTokens({
+      refreshToken: refreshTokenFromCookie,
+    });
+
+    // Update access token cookie (15 minutes)
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    // Update refresh token cookie (7 days)
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    res.json({ message: 'Token refreshed' });
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  logout(
-    @Body() dto: LogoutDto,
+  async logout(
+    @Req() req: Request,
+    @Res() res: Response,
     @CurrentUser('sub') userId: string,
   ) {
-    return this.authService.logout(dto.refreshToken, userId);
+    // Get refresh token from cookies
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (refreshToken) {
+      await this.authService.logout(refreshToken, userId);
+    }
+
+    // Clear cookies
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    res.json({ message: 'Logout successful' });
   }
 }

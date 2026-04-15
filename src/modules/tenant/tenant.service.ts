@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../database/prisma/prisma.service.js';
+import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
-import { DEFAULT_ROLE_PERMISSIONS } from '../assets/default/index.js';
+import { DEFAULT_ROLE_PERMISSIONS } from '../../assets/default/index.js';
+import bcrypt from 'bcrypt';
 
 @Injectable()
 export class TenantService {
@@ -83,6 +84,27 @@ export class TenantService {
             // Skip system-only permissions that don't exist in newPermissionMap
           }
         }
+      }
+
+      // 6. Create initial admin user
+      const adminRole = await tx.role.findFirst({
+        where: {
+          tenantId: newTenant.id,
+          name: 'ADMIN',
+        },
+      });
+
+      if (adminRole) {
+        const passwordHash = await bcrypt.hash(dto.adminPassword, 10);
+        await tx.user.create({
+          data: {
+            email: dto.adminEmail,
+            passwordHash,
+            tenantId: newTenant.id,
+            roleId: adminRole.id,
+            isActive: true,
+          },
+        });
       }
 
       return newTenant;

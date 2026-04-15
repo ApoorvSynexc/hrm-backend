@@ -8,8 +8,8 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import { IS_PUBLIC_KEY } from '../../common/decorators/public.decorator.js';
-import { JwtPayload } from '../../common/decorators/current-user.decorator.js';
+import { IS_PUBLIC_KEY } from '../../../common/decorators/public.decorator.js';
+import { JwtPayload } from '../../../common/decorators/current-user.decorator.js';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -48,6 +48,10 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {
+    // Try to extract from cookies first, then fall back to Authorization header
+    const tokenFromCookie = request.cookies?.accessToken;
+    if (tokenFromCookie) return tokenFromCookie;
+
     const authHeader = request.headers.authorization;
     if (!authHeader) return undefined;
 

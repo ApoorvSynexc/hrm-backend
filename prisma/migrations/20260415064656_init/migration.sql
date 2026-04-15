@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "EmploymentStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'TERMINATED');
 
@@ -18,6 +15,12 @@ CREATE TYPE "AttendanceStatus" AS ENUM ('PRESENT', 'ABSENT', 'HALF_DAY', 'ON_LEA
 
 -- CreateEnum
 CREATE TYPE "RegularizationStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "PermissionAction" AS ENUM ('manage', 'create', 'read', 'update', 'delete', 'approve');
+
+-- CreateEnum
+CREATE TYPE "PermissionSubject" AS ENUM ('all', 'tenant', 'user', 'role', 'permission', 'employee', 'department', 'leave', 'payroll', 'attendance', 'attendance_regularization');
 
 -- CreateTable
 CREATE TABLE "Tenant" (
@@ -78,8 +81,8 @@ CREATE TABLE "Role" (
 CREATE TABLE "Permission" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT,
-    "action" TEXT NOT NULL,
-    "subject" TEXT NOT NULL,
+    "action" "PermissionAction" NOT NULL,
+    "subject" "PermissionSubject" NOT NULL,
     "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -408,11 +411,3 @@ ALTER TABLE "AttendanceRegularization" ADD CONSTRAINT "AttendanceRegularization_
 
 -- AddForeignKey
 ALTER TABLE "AttendanceRegularization" ADD CONSTRAINT "AttendanceRegularization_reviewedByUserId_tenantId_fkey" FOREIGN KEY ("reviewedByUserId", "tenantId") REFERENCES "User"("id", "tenantId") ON DELETE NO ACTION ON UPDATE CASCADE;
-
--- Global uniqueness for rows where tenantId is NULL.
--- PostgreSQL allows multiple NULL values in normal unique indexes, so these
--- partial indexes protect global roles, permissions, and users.
-CREATE UNIQUE INDEX "User_global_email_key" ON "User"("email") WHERE "tenantId" IS NULL;
-CREATE UNIQUE INDEX "Role_global_name_key" ON "Role"("name") WHERE "tenantId" IS NULL;
-CREATE UNIQUE INDEX "Permission_global_action_subject_key" ON "Permission"("action", "subject") WHERE "tenantId" IS NULL;
-CREATE UNIQUE INDEX "RolePermission_global_role_permission_key" ON "RolePermission"("roleId", "permissionId") WHERE "tenantId" IS NULL;

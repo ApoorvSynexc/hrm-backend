@@ -1,5 +1,5 @@
 export const DEFAULT_SUPER_ADMIN = {
-  id: 'user_super_admin',
+  id: '550e8400-e29b-41d4-a716-446655440000',
   email: 'apoorv@yopmail.com',
   passwordHash: '12345678',
   firstName: 'Super',

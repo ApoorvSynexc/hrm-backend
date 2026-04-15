@@ -51,6 +51,11 @@ async function seedGlobalPermissions() {
 }
 
 async function seedSuperAdminRolePermissions() {
+  const superAdminRole = DEFAULT_ROLES.find((r) => r.name === 'SUPER_ADMIN');
+  if (!superAdminRole) {
+    throw new Error('SUPER_ADMIN role not found in DEFAULT_ROLES');
+  }
+
   const permissions = await prisma.permission.findMany({
     where: { tenantId: null },
   });
@@ -71,7 +76,7 @@ async function seedSuperAdminRolePermissions() {
     const existingRolePermission = await prisma.rolePermission.findFirst({
       where: {
         tenantId: null,
-        roleId: 'role_super_admin',
+        roleId: superAdminRole.id,
         permissionId: permission.id,
       },
     });
@@ -79,19 +84,8 @@ async function seedSuperAdminRolePermissions() {
     if (!existingRolePermission) {
       await prisma.rolePermission.create({
         data: {
-          id: `rp_super_admin_${permission.id}`,
           tenantId: null,
-          roleId: 'role_super_admin',
-          permissionId: permission.id,
-        },
-      });
-    } else {
-      await prisma.rolePermission.update({
-        where: { id: existingRolePermission.id },
-        data: {
-          id: `rp_super_admin_${permission.id}`,
-          tenantId: null,
-          roleId: 'role_super_admin',
+          roleId: superAdminRole.id,
           permissionId: permission.id,
         },
       });
@@ -100,6 +94,11 @@ async function seedSuperAdminRolePermissions() {
 }
 
 async function seedSuperAdminUser() {
+  const superAdminRole = DEFAULT_ROLES.find((r) => r.name === 'SUPER_ADMIN');
+  if (!superAdminRole) {
+    throw new Error('SUPER_ADMIN role not found in DEFAULT_ROLES');
+  }
+
   await prisma.user.upsert({
     where: { id: DEFAULT_SUPER_ADMIN.id },
     update: {
@@ -108,7 +107,7 @@ async function seedSuperAdminUser() {
       firstName: DEFAULT_SUPER_ADMIN.firstName,
       lastName: DEFAULT_SUPER_ADMIN.lastName,
       isActive: DEFAULT_SUPER_ADMIN.isActive,
-      roleId: 'role_super_admin',
+      roleId: superAdminRole.id,
     },
     create: {
       id: DEFAULT_SUPER_ADMIN.id,
@@ -118,7 +117,7 @@ async function seedSuperAdminUser() {
       firstName: DEFAULT_SUPER_ADMIN.firstName,
       lastName: DEFAULT_SUPER_ADMIN.lastName,
       isActive: DEFAULT_SUPER_ADMIN.isActive,
-      roleId: 'role_super_admin',
+      roleId: superAdminRole.id,
     },
   });
 }

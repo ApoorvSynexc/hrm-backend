@@ -13,7 +13,6 @@ import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/index.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { ResponseMessage } from '../../common/decorators/response-message.decorator.js';
 
 @Controller('auth')
 export class AuthController {
@@ -22,7 +21,6 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Login successful')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const { accessToken, refreshToken } = await this.authService.login(dto);
 
@@ -42,13 +40,12 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return null;
+    return { message: 'Login successful', data: null };
   }
 
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Token refreshed')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshTokenFromCookie = req.cookies?.refreshToken;
     if (!refreshTokenFromCookie) {
@@ -75,12 +72,11 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    return null;
+    return { message: 'Token refreshed', data: null };
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ResponseMessage('Logout successful')
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -106,6 +102,6 @@ export class AuthController {
       sameSite: 'strict',
     });
 
-    return null;
+    return { message: 'Logout successful', data: null };
   }
 }

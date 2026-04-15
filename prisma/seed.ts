@@ -16,19 +16,19 @@ const prisma = new PrismaClient({
 const permissionKey = (action: string, subject: string) => `${action}:${subject}`;
 
 async function seedGlobalRoles() {
-  const globalRoles = DEFAULT_ROLES.filter(
-    (role) => 'tenantId' in role && role.tenantId === null,
-  );
+  // Only seed SUPER_ADMIN role (global-only)
+  // Other tenant roles (ADMIN, HR, RM, EMPLOYEE) are created on-the-fly when creating a tenant
+  const superAdminRole = DEFAULT_ROLES.find((role) => role.name === 'SUPER_ADMIN');
 
-  for (const role of globalRoles) {
+  if (superAdminRole) {
     await prisma.role.upsert({
-      where: { id: role.id },
+      where: { id: superAdminRole.id },
       update: {
-        name: role.name,
-        description: role.description,
-        isSystem: role.isSystem,
+        name: superAdminRole.name,
+        description: superAdminRole.description,
+        isSystem: superAdminRole.isSystem,
       },
-      create: role,
+      create: superAdminRole,
     });
   }
 }

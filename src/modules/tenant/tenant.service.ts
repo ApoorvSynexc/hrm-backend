@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
-import { DEFAULT_ROLE_PERMISSIONS } from '../../assets/default/index.js';
+import { DEFAULT_ROLE_PERMISSIONS, DEFAULT_ROLES } from '../../assets/default/index.js';
 import bcrypt from 'bcrypt';
 
 @Injectable()
@@ -90,13 +90,10 @@ export class TenantService {
         },
       });
 
-      // 2. Fetch system roles to copy (ADMIN, HR, RM, EMPLOYEE — exclude SUPER_ADMIN)
-      const systemRolesToCopy = await tx.role.findMany({
-        where: {
-          tenantId: null,
-          name: { in: ['ADMIN', 'HR', 'RM', 'EMPLOYEE'] },
-        },
-      });
+      // 2. Get tenant roles from constants (exclude SUPER_ADMIN which is global-only)
+      const tenantRolesToCreate = DEFAULT_ROLES.filter(
+        (role) => role.name !== 'SUPER_ADMIN',
+      );
 
       // 3. Fetch tenant-scoped permissions to copy
       // Exclude: all, tenant (all variants), user, role, permission (system-only perms)
@@ -123,20 +120,20 @@ export class TenantService {
       }
 
       // 5. Create tenant-scoped roles and link permissions
-      for (const systemRole of systemRolesToCopy) {
+      for (const roleDefinition of tenantRolesToCreate) {
         // Create tenant-scoped role
         const newRole = await tx.role.create({
           data: {
             tenantId: newTenant.id,
-            name: systemRole.name,
-            description: systemRole.description,
+            name: roleDefinition.name,
+            description: roleDefinition.description,
             isSystem: true,
           },
         });
 
         // Get role permissions from DEFAULT_ROLE_PERMISSIONS
         const defaultPermsForRole =
-          DEFAULT_ROLE_PERMISSIONS[systemRole.name as keyof typeof DEFAULT_ROLE_PERMISSIONS];
+          DEFAULT_ROLE_PERMISSIONS[roleDefinition.name as keyof typeof DEFAULT_ROLE_PERMISSIONS];
 
         if (defaultPermsForRole && Array.isArray(defaultPermsForRole)) {
           for (const permKey of defaultPermsForRole) {

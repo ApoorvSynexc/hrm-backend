@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import bcrypt from 'bcrypt';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import {
@@ -99,11 +100,14 @@ async function seedSuperAdminUser() {
     throw new Error('SUPER_ADMIN role not found in DEFAULT_ROLES');
   }
 
+  // Hash the plain-text password with bcrypt
+  const hashedPassword = await bcrypt.hash(DEFAULT_SUPER_ADMIN.passwordHash, 12);
+
   await prisma.user.upsert({
     where: { id: DEFAULT_SUPER_ADMIN.id },
     update: {
       email: DEFAULT_SUPER_ADMIN.email,
-      passwordHash: DEFAULT_SUPER_ADMIN.passwordHash,
+      passwordHash: hashedPassword,
       firstName: DEFAULT_SUPER_ADMIN.firstName,
       lastName: DEFAULT_SUPER_ADMIN.lastName,
       isActive: DEFAULT_SUPER_ADMIN.isActive,
@@ -113,7 +117,7 @@ async function seedSuperAdminUser() {
       id: DEFAULT_SUPER_ADMIN.id,
       tenantId: DEFAULT_SUPER_ADMIN.tenantId,
       email: DEFAULT_SUPER_ADMIN.email,
-      passwordHash: DEFAULT_SUPER_ADMIN.passwordHash,
+      passwordHash: hashedPassword,
       firstName: DEFAULT_SUPER_ADMIN.firstName,
       lastName: DEFAULT_SUPER_ADMIN.lastName,
       isActive: DEFAULT_SUPER_ADMIN.isActive,

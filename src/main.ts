@@ -7,9 +7,13 @@ import {
   LoggingInterceptor,
   TransformInterceptor,
 } from './common/index.js';
+import { ValidationPipe } from './common/pipes/validation.pipe.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Set global API prefix
+  app.setGlobalPrefix('api/v1');
 
   // Global exception filter — must be registered after app is created
   const httpAdapterHost = app.get(HttpAdapterHost);
@@ -17,6 +21,15 @@ async function bootstrap() {
 
   // Global interceptors — order matters: logging wraps transform
   app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor());
+
+  // Global validation pipe — returns first error only
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 3000);
 }

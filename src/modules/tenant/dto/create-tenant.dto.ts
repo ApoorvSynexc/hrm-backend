@@ -2,25 +2,17 @@ import {
   IsString,
   IsNotEmpty,
   MaxLength,
-  MinLength,
-  Matches,
   IsEmail,
+  MinLength,
+  IsOptional,
+  Matches,
 } from 'class-validator';
 
 export class CreateTenantDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(2)
-  @MaxLength(50)
-  @Matches(/^[a-z0-9-]+$/, {
-    message: 'slug must contain only lowercase letters, numbers, and hyphens',
-  })
-  slug: string;
+  name!: string;
 
   @IsEmail()
   @IsNotEmpty()
@@ -30,4 +22,11 @@ export class CreateTenantDto {
   @IsNotEmpty()
   @MinLength(8)
   adminPassword!: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+    message: 'domain must be a valid domain format (e.g., example.com)',
+  })
+  domain?: string;
 }

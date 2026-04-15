@@ -98,6 +98,19 @@ model Tenant {
   rolePermissions           RolePermission[]
   attendances               Attendance[]
   attendanceRegularizations AttendanceRegularization[]
+  domains                   TenantDomain[]
+}
+
+model TenantDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, domain])
+  @@index([tenantId])
 }
 
 model User {

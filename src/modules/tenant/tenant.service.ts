@@ -8,14 +8,85 @@ import bcrypt from 'bcrypt';
 export class TenantService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Generate a slug from tenant name
+   * Converts to lowercase, removes spaces and special chars, replaces with hyphens
+   */
+  private generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  }
+
+  /**
+   * Ensure slug is unique by appending a number if needed
+   */
+  private async ensureUniqueSlug(baseSlug: string): Promise<string> {
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (await this.prisma.tenant.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+
+  /**
+   * Extract domain from email
+   * e.g., "apoorv@google.com" → "google.com"
+   */
+  private extractDomain(email: string): string {
+    const parts = email.split('@');
+    return parts[1]?.toLowerCase() || '';
+  }
+
   async createTenant(dto: CreateTenantDto) {
+    // 1. Verify admin email doesn't already exist
+    const existingAdmin = await this.prisma.user.findFirst({
+      where: { email: dto.adminEmail },
+    });
+    if (existingAdmin) {
+      throw new BadRequestException(
+        `Admin email "${dto.adminEmail}" is already registered in another tenant`,
+      );
+    }
+
+    // 2. Generate slug from name and ensure uniqueness
+    const baseSlug = this.generateSlug(dto.name);
+    const slug = await this.ensureUniqueSlug(baseSlug);
+
+    // 3. Determine domain: use provided or extract from admin email
+    const domain = dto.domain || this.extractDomain(dto.adminEmail);
+    if (!domain) {
+      throw new BadRequestException('Could not determine tenant domain');
+    }
+
+    // 4. Verify domain doesn't already exist
+    const existingDomain = await this.prisma.tenantDomain.findUnique({
+      where: { domain },
+    });
+    if (existingDomain) {
+      throw new BadRequestException(
+        `Domain "${domain}" is already registered to another tenant`,
+      );
+    }
+
     // Run entire operation in a transaction
     return await this.prisma.$transaction(async (tx) => {
-      // 1. Create the tenant
+      // 1. Create the tenant with domain
       const newTenant = await tx.tenant.create({
         data: {
           name: dto.name,
-          slug: dto.slug,
+          slug,
+          domains: {
+            create: [{ domain }],
+          },
         },
       });
 
@@ -94,20 +165,52 @@ export class TenantService {
         },
       });
 
-      if (adminRole) {
-        const passwordHash = await bcrypt.hash(dto.adminPassword, 10);
-        await tx.user.create({
-          data: {
-            email: dto.adminEmail,
-            passwordHash,
-            tenantId: newTenant.id,
-            roleId: adminRole.id,
-            isActive: true,
-          },
-        });
+      if (!adminRole) {
+        throw new BadRequestException('ADMIN role not found for tenant');
       }
 
-      return newTenant;
+      const passwordHash = await bcrypt.hash(dto.adminPassword, 10);
+      const createdUser = await tx.user.create({
+        data: {
+          email: dto.adminEmail,
+          passwordHash,
+          tenantId: newTenant.id,
+          roleId: adminRole.id,
+          isActive: true,
+        },
+      });
+
+      const adminUser: { id: string; email: string } = {
+        id: createdUser.id,
+        email: createdUser.email,
+      };
+
+      // 7. Fetch and return complete tenant with domains
+      const completeTenant = await tx.tenant.findUnique({
+        where: { id: newTenant.id },
+        include: {
+          domains: {
+            select: {
+              id: true,
+              domain: true,
+              createdAt: true,
+            },
+          },
+          roles: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              isSystem: true,
+            },
+          },
+        },
+      });
+
+      return {
+        ...completeTenant,
+        adminUser,
+      };
     });
   }
 }

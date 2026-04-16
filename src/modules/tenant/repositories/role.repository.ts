@@ -29,4 +29,50 @@ export class RoleRepository {
       data,
     });
   }
+
+  /**
+   * Find many roles for a tenant
+   */
+  async findManyByTenant(tenantId: string, tx?: TX) {
+    return this.client(tx).role.findMany({
+      where: { tenantId, status: 'ACTIVE' },
+      include: {
+        _count: { select: { rolePermissions: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Find a role by tenant and ID with permissions
+   */
+  async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
+    return this.client(tx).role.findFirst({
+      where: { id, tenantId },
+      include: {
+        rolePermissions: {
+          include: { permission: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Update a role
+   */
+  async update(id: string, data: any, tx?: TX) {
+    return this.client(tx).role.update({
+      where: { id },
+      data,
+    });
+  }
+
+  /**
+   * Delete a role
+   */
+  async delete(id: string, tx?: TX) {
+    return this.client(tx).role.delete({
+      where: { id },
+    });
+  }
 }

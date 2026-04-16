@@ -38,4 +38,32 @@ export class RolePermissionRepository {
       data,
     });
   }
+
+  /**
+   * Find role permission by role and permission
+   */
+  async findByRoleAndPermission(tenantId: string, roleId: string, permissionId: string, tx?: TX) {
+    return this.client(tx).rolePermission.findUnique({
+      where: {
+        tenantId_roleId_permissionId: {
+          tenantId,
+          roleId,
+          permissionId,
+        },
+      },
+    });
+  }
+
+  /**
+   * Delete role permission by role and permission
+   */
+  async deleteByRoleAndPermission(tenantId: string, roleId: string, permissionId: string, tx?: TX) {
+    return this.client(tx).rolePermission.deleteMany({
+      where: {
+        tenantId,
+        roleId,
+        permissionId,
+      },
+    });
+  }
 }

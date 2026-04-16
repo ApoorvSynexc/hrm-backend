@@ -14,8 +14,7 @@ import { TransformInterceptor } from './interceptors/transform.interceptor.js';
     },
     {
       provide: APP_INTERCEPTOR,
-      useFactory: (i18n: I18nService) => new TransformInterceptor(i18n),
-      inject: [I18nService],
+      useClass: TransformInterceptor,
     },
   ],
   exports: [I18nService],

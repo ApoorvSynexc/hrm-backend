@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Scope,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { Observable, map } from 'rxjs';
@@ -27,7 +28,7 @@ export interface ApiResponse<T> {
  *
  * Messages are translated based on Accept-Language or X-Language header
  */
-@Injectable()
+@Injectable({ scope: Scope.TRANSIENT })
 export class TransformInterceptor<T = any> implements NestInterceptor<T, ApiResponse<T>> {
   constructor(private i18n: I18nService) {}
 

@@ -1,0 +1,39 @@
+import { IsEmail, IsString, IsOptional, MaxLength, IsDateString, IsDecimal } from 'class-validator';
+
+export class UpdateEmployeeDto {
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  firstName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  lastName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  designation?: string;
+
+  @IsString()
+  @IsOptional()
+  departmentId?: string;
+
+  @IsDateString()
+  @IsOptional()
+  hireDate?: string;
+
+  @IsDecimal()
+  @IsOptional()
+  salary?: string;
+}

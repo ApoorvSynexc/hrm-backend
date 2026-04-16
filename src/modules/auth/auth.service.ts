@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRepository } from '../user/repositories/user.repository.js';
+import { UserRepository } from '../account/repositories/user.repository.js';
 import { TenantRepository } from '../tenant/repositories/tenant.repository.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
 import bcrypt from 'bcrypt';

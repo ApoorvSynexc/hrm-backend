@@ -7,7 +7,7 @@ import { UserRepository } from './repositories/user.repository.js';
 import { UpdateUserDto } from './dto/index.js';
 
 @Injectable()
-export class UserService {
+export class AccountService {
   constructor(private userRepository: UserRepository) {}
 
   /**

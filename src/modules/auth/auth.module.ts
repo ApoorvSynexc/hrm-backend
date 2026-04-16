@@ -7,7 +7,7 @@ import { AuthController } from './auth.controller.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { PermissionsGuard } from './guards/permissions.guard.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
-import { UserModule } from '../user/user.module.js';
+import { AccountModule } from '../account/account.module.js';
 import { TenantModule } from '../tenant/tenant.module.js';
 
 @Global()
@@ -25,7 +25,7 @@ import { TenantModule } from '../tenant/tenant.module.js';
         };
       },
     }),
-    UserModule,
+    AccountModule,
     TenantModule,
   ],
   controllers: [AuthController],

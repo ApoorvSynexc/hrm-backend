@@ -6,9 +6,10 @@ import { CommonModule } from './common/common.module.js';
 import { PrismaModule } from './database/prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { TenantModule } from './modules/tenant/tenant.module.js';
-import { UserModule } from './modules/user/user.module.js';
+import { AccountModule } from './modules/account/account.module.js';
 import { DepartmentModule } from './modules/department/department.module.js';
 import { RoleModule } from './modules/role/role.module.js';
+import { EmployeeModule } from './modules/employee/employee.module.js';
 
 @Module({
   imports: [
@@ -17,9 +18,10 @@ import { RoleModule } from './modules/role/role.module.js';
     PrismaModule,
     AuthModule,
     TenantModule,
-    UserModule,
+    AccountModule,
     DepartmentModule,
     RoleModule,
+    EmployeeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

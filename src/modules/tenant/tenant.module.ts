@@ -5,10 +5,10 @@ import { TenantRepository } from './repositories/tenant.repository.js';
 import { RoleRepository } from './repositories/role.repository.js';
 import { PermissionRepository } from './repositories/permission.repository.js';
 import { RolePermissionRepository } from './repositories/role-permission.repository.js';
-import { UserModule } from '../user/user.module.js';
+import { AccountModule } from '../account/account.module.js';
 
 @Module({
-  imports: [UserModule],
+  imports: [AccountModule],
   controllers: [TenantController],
   providers: [
     TenantService,

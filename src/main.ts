@@ -3,12 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { HttpAdapterHost } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
-import {
-  AllExceptionsFilter,
-  LoggingInterceptor,
-  TransformInterceptor,
-  I18nService,
-} from './common/index.js';
+import { AllExceptionsFilter } from './common/index.js';
 import { ValidationPipe } from './common/pipes/validation.pipe.js';
 
 async function bootstrap() {
@@ -24,9 +19,7 @@ async function bootstrap() {
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost));
 
-  // Global interceptors — order matters: logging wraps transform
-  const i18nService = app.get(I18nService);
-  app.useGlobalInterceptors(new LoggingInterceptor(), new TransformInterceptor(i18nService));
+  // Global interceptors are registered in CommonModule via APP_INTERCEPTOR token
 
   // Global validation pipe — returns first error only
   app.useGlobalPipes(

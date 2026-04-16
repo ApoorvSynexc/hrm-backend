@@ -49,8 +49,8 @@ export const MESSAGES = {
     ru: 'Недостаточно прав',
   },
   'error.not_found': {
-    en: 'Resource not found',
-    ru: 'Ресурс не найден',
+    en: 'The resource you are looking for is not found',
+    ru: 'Ресурс, который вы ищете, не найден',
   },
   'error.bad_request': {
     en: 'Invalid request',

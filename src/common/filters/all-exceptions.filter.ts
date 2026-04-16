@@ -70,14 +70,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const response = exception.getResponse();
-      if (typeof response === 'string') {
-        customMessage = response;
-      } else if (typeof response === 'object' && response !== null) {
-        const res = response as Record<string, unknown>;
-        customMessage = (res['message'] as string | string[]) as string ?? exception.message;
-      }
 
-      // Map HTTP status to message keys
+      // Map HTTP status to message keys first
       if (statusCode === HttpStatus.UNAUTHORIZED) {
         messageKey = 'error.unauthorized';
       } else if (statusCode === HttpStatus.FORBIDDEN) {
@@ -86,6 +80,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
         messageKey = 'error.not_found';
       } else if (statusCode === HttpStatus.BAD_REQUEST) {
         messageKey = 'error.bad_request';
+      }
+
+      // Get custom message if it exists and it's not a 404 with default Express message
+      if (typeof response === 'string') {
+        // For 404, ignore default Express messages like "Cannot GET /path"
+        if (!(statusCode === HttpStatus.NOT_FOUND && response.startsWith('Cannot'))) {
+          customMessage = response;
+        }
+      } else if (typeof response === 'object' && response !== null) {
+        const res = response as Record<string, unknown>;
+        const msg = (res['message'] as string | string[]) as string ?? exception.message;
+        // For 404, ignore default Express messages
+        if (!(statusCode === HttpStatus.NOT_FOUND && msg.startsWith('Cannot'))) {
+          customMessage = msg;
+        }
       }
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       // Handle Prisma-specific errors

@@ -1,12 +1,26 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
+import { UserRepository } from '../user/repositories/user.repository.js';
+import {
+  TenantRepository,
+  RoleRepository,
+  PermissionRepository,
+  RolePermissionRepository,
+} from './repositories/index.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
 import { DEFAULT_ROLE_PERMISSIONS, DEFAULT_ROLES } from '../../assets/default/index.js';
 import bcrypt from 'bcrypt';
 
 @Injectable()
 export class TenantService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private tenantRepository: TenantRepository,
+    private roleRepository: RoleRepository,
+    private permissionRepository: PermissionRepository,
+    private rolePermissionRepository: RolePermissionRepository,
+    private userRepository: UserRepository,
+  ) {}
 
   /**
    * Generate a slug from tenant name
@@ -29,7 +43,7 @@ export class TenantService {
     let slug = baseSlug;
     let counter = 1;
 
-    while (await this.prisma.tenant.findUnique({ where: { slug } })) {
+    while (await this.tenantRepository.findBySlug(slug)) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -48,8 +62,8 @@ export class TenantService {
 
   async createTenant(dto: CreateTenantDto) {
     // 1. Verify admin email doesn't already exist
-    const existingAdmin = await this.prisma.user.findFirst({
-      where: { email: dto.adminEmail },
+    const existingAdmin = await this.userRepository.findFirst({
+      email: dto.adminEmail,
     });
     if (existingAdmin) {
       throw new BadRequestException(
@@ -97,11 +111,12 @@ export class TenantService {
 
       // 3. Fetch global permissions
       // Exclude: all, user, role, permission (system-only perms that should not be mapped to tenant roles)
-      const globalPermissions = await tx.permission.findMany({
-        where: {
+      const globalPermissions = await this.permissionRepository.findMany(
+        {
           subject: { notIn: ['all', 'user', 'role', 'permission'] },
         },
-      });
+        tx,
+      );
 
       // 4. Build a map of global permissions for quick lookup
       const globalPermissionMap = new Map<string, string>(); // key -> permissionId
@@ -113,14 +128,15 @@ export class TenantService {
       // 5. Create tenant-scoped roles and map them to global permissions
       for (const roleDefinition of tenantRolesToCreate) {
         // Create tenant-scoped role
-        const newRole = await tx.role.create({
-          data: {
+        const newRole = await this.roleRepository.create(
+          {
             tenantId: newTenant.id,
             name: roleDefinition.name,
             description: roleDefinition.description,
             isSystem: true,
           },
-        });
+          tx,
+        );
 
         // Get role permissions from DEFAULT_ROLE_PERMISSIONS
         const defaultPermsForRole =
@@ -132,13 +148,14 @@ export class TenantService {
 
             if (permissionId) {
               // Map global permission to this tenant's role
-              await tx.rolePermission.create({
-                data: {
+              await this.rolePermissionRepository.create(
+                {
                   tenantId: newTenant.id,
                   roleId: newRole.id,
                   permissionId, // Reference the global permission
                 },
-              });
+                tx,
+              );
             }
             // Skip system-only permissions that don't exist in globalPermissionMap
           }
@@ -146,20 +163,19 @@ export class TenantService {
       }
 
       // 6. Create initial admin user
-      const adminRole = await tx.role.findFirst({
-        where: {
-          tenantId: newTenant.id,
-          name: 'ADMIN',
-        },
-      });
+      const adminRole = await this.roleRepository.findFirstByTenantAndName(
+        newTenant.id,
+        'ADMIN',
+        tx,
+      );
 
       if (!adminRole) {
         throw new BadRequestException('ADMIN role not found for tenant');
       }
 
       const passwordHash = await bcrypt.hash(dto.adminPassword, 10);
-      const createdUser = await tx.user.create({
-        data: {
+      const createdUser = await this.userRepository.create(
+        {
           email: dto.adminEmail,
           passwordHash,
           firstName: 'Admin',
@@ -168,7 +184,8 @@ export class TenantService {
           roleId: adminRole.id,
           status: 'ACTIVE',
         },
-      });
+        tx,
+      );
 
       const adminUser: { id: string; email: string } = {
         id: createdUser.id,

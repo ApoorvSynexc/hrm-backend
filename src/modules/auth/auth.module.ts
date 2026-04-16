@@ -6,6 +6,9 @@ import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { PermissionsGuard } from './guards/permissions.guard.js';
+import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
+import { UserModule } from '../user/user.module.js';
+import { TenantModule } from '../tenant/tenant.module.js';
 
 @Global()
 @Module({
@@ -22,10 +25,13 @@ import { PermissionsGuard } from './guards/permissions.guard.js';
         };
       },
     }),
+    UserModule,
+    TenantModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
+    RefreshTokenRepository,
     JwtAuthGuard,
     PermissionsGuard,
     {

@@ -4,24 +4,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
+import { UserRepository } from './repositories/user.repository.js';
 import bcrypt from 'bcrypt';
 import { CreateUserDto, UpdateUserDto } from './dto/index.js';
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private userRepository: UserRepository,
+    private prisma: PrismaService,
+  ) {}
 
   /**
    * Create a new user (admin or employee)
    */
   async createUser(tenantId: string, dto: CreateUserDto) {
     // Verify email doesn't already exist in this tenant
-    const existingUser = await this.prisma.user.findFirst({
-      where: {
-        tenantId,
-        email: dto.email,
-      },
-    });
+    const existingUser = await this.userRepository.findByTenantAndEmail(tenantId, dto.email);
 
     if (existingUser) {
       throw new BadRequestException(
@@ -31,12 +30,10 @@ export class UserService {
 
     // If creating an employee, verify employeeCode uniqueness
     if (dto.employeeCode) {
-      const existingEmployee = await this.prisma.user.findFirst({
-        where: {
-          tenantId,
-          employeeCode: dto.employeeCode,
-        },
-      });
+      const existingEmployee = await this.userRepository.findByEmployeeCode(
+        tenantId,
+        dto.employeeCode,
+      );
 
       if (existingEmployee) {
         throw new BadRequestException(
@@ -49,26 +46,20 @@ export class UserService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     // Create user
-    return await this.prisma.user.create({
-      data: {
-        tenantId,
-        email: dto.email,
-        passwordHash,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        roleId: dto.roleId,
-        employeeCode: dto.employeeCode,
-        designation: dto.designation,
-        hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
-        salary: dto.salary ? String(dto.salary) : null,
-        departmentId: dto.departmentId,
-        status: 'ACTIVE',
-      },
-      include: {
-        role: true,
-        department: true,
-      },
+    return await this.userRepository.create({
+      tenantId,
+      email: dto.email,
+      passwordHash,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      roleId: dto.roleId,
+      employeeCode: dto.employeeCode,
+      designation: dto.designation,
+      hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+      salary: dto.salary ? String(dto.salary) : null,
+      departmentId: dto.departmentId,
+      status: 'ACTIVE',
     });
   }
 
@@ -76,16 +67,7 @@ export class UserService {
    * Get user by ID
    */
   async getUserById(tenantId: string, userId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        tenantId,
-      },
-      include: {
-        role: true,
-        department: true,
-      },
-    });
+    const user = await this.userRepository.findByTenantAndId(tenantId, userId);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -103,7 +85,7 @@ export class UserService {
       isEmployee?: boolean; // true = with employeeCode, false = without
     },
   ) {
-    const where: any = { tenantId };
+    const where: any = {};
 
     if (filters?.isEmployee === true) {
       where.employeeCode = { not: null };
@@ -111,14 +93,7 @@ export class UserService {
       where.employeeCode = null;
     }
 
-    return await this.prisma.user.findMany({
-      where,
-      include: {
-        role: true,
-        department: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    return await this.userRepository.findManyByTenant(tenantId, where);
   }
 
   /**
@@ -133,12 +108,10 @@ export class UserService {
 
     // Check email uniqueness if email is being changed
     if (dto.email && dto.email !== user.email) {
-      const existingUser = await this.prisma.user.findFirst({
-        where: {
-          tenantId,
-          email: dto.email,
-          id: { not: userId },
-        },
+      const existingUser = await this.userRepository.findFirst({
+        tenantId,
+        email: dto.email,
+        id: { not: userId },
       });
 
       if (existingUser) {
@@ -149,23 +122,16 @@ export class UserService {
     }
 
     // Update user
-    return await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        email: dto.email,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        roleId: dto.roleId,
-        designation: dto.designation,
-        hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
-        salary: dto.salary ? String(dto.salary) : undefined,
-        departmentId: dto.departmentId,
-      },
-      include: {
-        role: true,
-        department: true,
-      },
+    return await this.userRepository.update(userId, {
+      email: dto.email,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      phone: dto.phone,
+      roleId: dto.roleId,
+      designation: dto.designation,
+      hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
+      salary: dto.salary ? String(dto.salary) : undefined,
+      departmentId: dto.departmentId,
     });
   }
 
@@ -173,7 +139,7 @@ export class UserService {
    * Delete user (soft delete - set status to DELETED)
    */
   async deleteUser(tenantId: string, userId: string) {
-    const user = await this.getUserById(tenantId, userId);
+    await this.getUserById(tenantId, userId);
 
     // Don't allow deleting users who are reviewed regularizations
     const referencedRegularization = await this.prisma.attendanceRegularization.findFirst({
@@ -188,14 +154,7 @@ export class UserService {
       );
     }
 
-    return await this.prisma.user.update({
-      where: { id: userId },
-      data: { status: 'DELETED' },
-      include: {
-        role: true,
-        department: true,
-      },
-    });
+    return await this.userRepository.update(userId, { status: 'DELETED' });
   }
 
   /**
@@ -218,10 +177,7 @@ export class UserService {
     // Hash new password
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    return await this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash },
-    });
+    return await this.userRepository.update(userId, { passwordHash });
   }
 
   /**
@@ -232,10 +188,7 @@ export class UserService {
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
 
-    return await this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash },
-    });
+    return await this.userRepository.update(userId, { passwordHash });
   }
 
   /**

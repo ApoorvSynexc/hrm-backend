@@ -4,7 +4,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../database/prisma/prisma.service.js';
+import { UserRepository } from '../user/repositories/user.repository.js';
+import { TenantRepository } from '../tenant/repositories/tenant.repository.js';
+import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { LoginDto } from './dto/login.dto.js';
@@ -14,7 +16,9 @@ import { JwtPayload } from '../../common/decorators/current-user.decorator.js';
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    private userRepository: UserRepository,
+    private tenantRepository: TenantRepository,
+    private refreshTokenRepository: RefreshTokenRepository,
     private jwtService: JwtService,
   ) {}
 
@@ -23,24 +27,16 @@ export class AuthService {
 
     if (!dto.tenantSlug) {
       // SUPER_ADMIN login — find user with tenantId = null
-      user = await this.prisma.user.findFirst({
-        where: { tenantId: null, email: dto.email },
-        include: { role: true },
-      });
+      user = await this.userRepository.findSuperAdmin(dto.email);
     } else {
       // Tenant user login
-      const tenant = await this.prisma.tenant.findUnique({
-        where: { slug: dto.tenantSlug },
-      });
+      const tenant = await this.tenantRepository.findBySlug(dto.tenantSlug);
 
       if (!tenant || tenant.status !== 'ACTIVE') {
         throw new UnauthorizedException('Invalid or inactive tenant');
       }
 
-      user = await this.prisma.user.findFirst({
-        where: { tenantId: tenant.id, email: dto.email },
-        include: { role: true },
-      });
+      user = await this.userRepository.findByTenantAndEmail(tenant.id, dto.email);
     }
 
     if (!user || user.status !== 'ACTIVE') {
@@ -73,9 +69,7 @@ export class AuthService {
     const { tokenId, secret } = this.parseRefreshToken(dto.refreshToken);
 
     // Find refresh token in database
-    const refreshTokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { id: tokenId },
-    });
+    const refreshTokenRecord = await this.refreshTokenRepository.findById(tokenId);
 
     if (!refreshTokenRecord) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -93,20 +87,14 @@ export class AuthService {
     }
 
     // Fetch user with role
-    const user = await this.prisma.user.findUnique({
-      where: { id: refreshTokenRecord.userId },
-      include: { role: true },
-    });
+    const user = await this.userRepository.findByIdWithRole(refreshTokenRecord.userId);
 
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('User is inactive or deleted');
     }
 
     // Revoke old token
-    await this.prisma.refreshToken.update({
-      where: { id: tokenId },
-      data: { revokedAt: new Date() },
-    });
+    await this.refreshTokenRepository.revoke(tokenId);
 
     // Generate new tokens
     const payload: JwtPayload = {
@@ -125,9 +113,7 @@ export class AuthService {
   async logout(refreshToken: string, userId: string): Promise<void> {
     const { tokenId, secret } = this.parseRefreshToken(refreshToken);
 
-    const refreshTokenRecord = await this.prisma.refreshToken.findUnique({
-      where: { id: tokenId },
-    });
+    const refreshTokenRecord = await this.refreshTokenRepository.findById(tokenId);
 
     if (!refreshTokenRecord) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -145,10 +131,7 @@ export class AuthService {
     }
 
     // Revoke token
-    await this.prisma.refreshToken.update({
-      where: { id: tokenId },
-      data: { revokedAt: new Date() },
-    });
+    await this.refreshTokenRepository.revoke(tokenId);
   }
 
   private async generateRefreshToken(userId: string, tenantId: string | null): Promise<string> {
@@ -162,13 +145,11 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     // Store in database
-    const record = await this.prisma.refreshToken.create({
-      data: {
-        userId,
-        tenantId,
-        tokenHash,
-        expiresAt,
-      },
+    const record = await this.refreshTokenRepository.create({
+      userId,
+      tenantId,
+      tokenHash,
+      expiresAt,
     });
 
     // Return token as id.secret (format allows O(1) lookup)

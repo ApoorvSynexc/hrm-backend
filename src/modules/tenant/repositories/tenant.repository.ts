@@ -64,4 +64,14 @@ export class TenantRepository {
       data,
     });
   }
+
+  /**
+   * Update tenant details
+   */
+  async update(id: string, data: any, tx?: TX) {
+    return this.client(tx).tenant.update({
+      where: { id },
+      data,
+    });
+  }
 }

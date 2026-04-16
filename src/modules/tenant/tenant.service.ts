@@ -220,4 +220,57 @@ export class TenantService {
       };
     });
   }
+
+  /**
+   * Update tenant details (name, logo, domains)
+   */
+  async updateTenant(tenantId: string, dto: any) {
+    // Validate tenant exists
+    const tenant = await this.tenantRepository.findById(tenantId);
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
+    }
+
+    // Update name if provided
+    if (dto.name) {
+      await this.tenantRepository.update(tenantId, { name: dto.name });
+    }
+
+    // Update logo if provided
+    if (dto.logo) {
+      await this.tenantRepository.update(tenantId, { logo: dto.logo });
+    }
+
+    // Update domains if provided
+    if (dto.domains && Array.isArray(dto.domains) && dto.domains.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        // Delete existing domains
+        await tx.tenantDomain.deleteMany({
+          where: { tenantId },
+        });
+
+        // Create new domains
+        for (const domain of dto.domains) {
+          const existingDomain = await tx.tenantDomain.findUnique({
+            where: { domain },
+          });
+          if (existingDomain && existingDomain.tenantId !== tenantId) {
+            throw new BadRequestException(
+              `Domain "${domain}" is already registered to another tenant`,
+            );
+          }
+
+          await tx.tenantDomain.create({
+            data: {
+              domain,
+              tenantId,
+            },
+          });
+        }
+      });
+    }
+
+    // Return updated tenant
+    return this.tenantRepository.findByIdWithDetails(tenantId);
+  }
 }

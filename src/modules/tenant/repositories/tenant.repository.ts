@@ -13,78 +13,32 @@ export class TenantRepository {
   }
 
   /**
-   * Find a tenant by slug
+   * Find a single tenant by flexible where clause
+   * Example: find({ id: '123' }) or find({ slug: 'acme' })
    */
-  async findBySlug(slug: string, tx?: TX) {
+  async find(
+    where: Record<string, any>,
+    include?: Record<string, any>,
+    tx?: TX,
+  ) {
     return this.client(tx).tenant.findUnique({
-      where: { slug },
+      where: where as any,
+      ...(include && { include }),
     });
   }
 
   /**
-   * Find a tenant by ID
+   * Find multiple tenants with optional pagination and search
    */
-  async findById(id: string, tx?: TX) {
-    return this.client(tx).tenant.findUnique({
-      where: { id },
-    });
-  }
-
-  /**
-   * Find a tenant by ID with domains and roles included
-   */
-  async findByIdWithDetails(id: string, tx?: TX) {
-    return this.client(tx).tenant.findUnique({
-      where: { id },
-      include: {
-        domains: {
-          select: {
-            id: true,
-            domain: true,
-            createdAt: true,
-          },
-        },
-        roles: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            isSystem: true,
-          },
-        },
-      },
-    });
-  }
-
-  /**
-   * Create a new tenant
-   */
-  async create(data: any, tx?: TX) {
-    return this.client(tx).tenant.create({
-      data,
-    });
-  }
-
-  /**
-   * Update tenant details
-   */
-  async update(id: string, data: any, tx?: TX) {
-    return this.client(tx).tenant.update({
-      where: { id },
-      data,
-    });
-  }
-
-  /**
-   * Find many tenants with pagination and search
-   */
-  async findMany(
-    options: {
+  async findAll(
+    where?: Record<string, any>,
+    options?: {
       pagination?: boolean;
       limit?: number;
       page?: number;
       search?: string;
     },
+    include?: Record<string, any>,
     tx?: TX,
   ) {
     const {
@@ -92,10 +46,12 @@ export class TenantRepository {
       limit = 10,
       page = 1,
       search = '',
-    } = options;
+    } = options || {};
 
     const skip = pagination ? (page - 1) * limit : 0;
-    const where = search
+
+    // Build where clause combining provided where and search
+    const searchWhere = search
       ? {
           OR: [
             { name: { contains: search, mode: 'insensitive' as const } },
@@ -104,21 +60,28 @@ export class TenantRepository {
         }
       : {};
 
+    const finalWhere = where ? { AND: [where, searchWhere] } : searchWhere;
+
     const [tenants, total] = await Promise.all([
       this.client(tx).tenant.findMany({
-        where,
+        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
         include: {
           domains: {
             select: {
+              id: true,
               domain: true,
+              createdAt: true,
             },
-          }
+          },
+          ...(include && include),
         },
         skip: pagination ? skip : undefined,
         take: pagination ? limit : undefined,
         orderBy: { createdAt: 'desc' },
       }),
-      this.client(tx).tenant.count({ where }),
+      this.client(tx).tenant.count({
+        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+      }),
     ]);
 
     const result: any = {
@@ -135,5 +98,33 @@ export class TenantRepository {
     }
 
     return result;
+  }
+
+  /**
+   * Create a new tenant
+   */
+  async create(data: any, tx?: TX) {
+    return this.client(tx).tenant.create({
+      data,
+    });
+  }
+
+  /**
+   * Update tenant by flexible where clause
+   */
+  async update(where: Record<string, any>, data: any, tx?: TX) {
+    return this.client(tx).tenant.update({
+      where: where as any,
+      data,
+    });
+  }
+
+  /**
+   * Delete tenant by flexible where clause
+   */
+  async delete(where: Record<string, any>, tx?: TX) {
+    return this.client(tx).tenant.delete({
+      where: where as any,
+    });
   }
 }

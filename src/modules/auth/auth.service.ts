@@ -30,7 +30,7 @@ export class AuthService {
       user = await this.userRepository.findSuperAdmin(dto.email);
     } else {
       // Tenant user login
-      const tenant = await this.tenantRepository.findBySlug(dto.tenantSlug);
+      const tenant = await this.tenantRepository.find({ slug: dto.tenantSlug });
 
       if (!tenant || tenant.status !== 'ACTIVE') {
         throw new UnauthorizedException('Invalid or inactive tenant');

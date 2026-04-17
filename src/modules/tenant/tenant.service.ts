@@ -48,7 +48,7 @@ export class TenantService {
     let slug = baseSlug;
     let counter = 1;
 
-    while (await this.tenantRepository.findBySlug(slug)) {
+    while (await this.tenantRepository.find({ slug })) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
@@ -236,19 +236,19 @@ export class TenantService {
    */
   async updateTenant(tenantId: string, dto: any) {
     // Validate tenant exists
-    const tenant = await this.tenantRepository.findById(tenantId);
+    const tenant = await this.tenantRepository.find({ id: tenantId });
     if (!tenant) {
       throw new BadRequestException('Tenant not found');
     }
 
     // Update name if provided
     if (dto.name) {
-      await this.tenantRepository.update(tenantId, { name: dto.name });
+      await this.tenantRepository.update({ id: tenantId }, { name: dto.name });
     }
 
     // Update logo if provided
     if (dto.logo) {
-      await this.tenantRepository.update(tenantId, { logo: dto.logo });
+      await this.tenantRepository.update({ id: tenantId }, { logo: dto.logo });
     }
 
     // Update domains if provided
@@ -281,11 +281,30 @@ export class TenantService {
     }
 
     // Return updated tenant
-    return this.tenantRepository.findByIdWithDetails(tenantId);
+    return this.tenantRepository.find(
+      { id: tenantId },
+      {
+        domains: {
+          select: {
+            id: true,
+            domain: true,
+            createdAt: true,
+          },
+        },
+        roles: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            isSystem: true,
+          },
+        },
+      }
+    );
   }
 
   async configureWorkingHours(tenantId: string, dto: ConfigureWorkingHoursDto) {
-    const tenant = await this.tenantRepository.findById(tenantId);
+    const tenant = await this.tenantRepository.find({ id: tenantId });
     if (!tenant) {
       throw new BadRequestException('Tenant not found');
     }
@@ -296,7 +315,7 @@ export class TenantService {
   }
 
   async configureWorkingDays(tenantId: string, dto: ConfigureWorkingDaysDto) {
-    const tenant = await this.tenantRepository.findById(tenantId);
+    const tenant = await this.tenantRepository.find({ id: tenantId });
     if (!tenant) {
       throw new BadRequestException('Tenant not found');
     }
@@ -337,6 +356,6 @@ export class TenantService {
     page?: number;
     search?: string;
   }) {
-    return await this.tenantRepository.findMany(options);
+    return await this.tenantRepository.findAll(undefined, options);
   }
 }

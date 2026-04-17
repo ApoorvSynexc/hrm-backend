@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { RolePermissionRepository } from '../../tenant/repositories/role-permission.repository.js';
+import { RolePermissionRepository } from '../../role/repositories/role-permission.repository.js';
 import {
   PERMISSIONS_KEY,
 } from '../../../common/decorators/permissions.decorator.js';

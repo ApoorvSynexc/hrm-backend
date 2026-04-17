@@ -9,6 +9,7 @@ import { PermissionsGuard } from './guards/permissions.guard.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
 import { AccountModule } from '../account/account.module.js';
 import { TenantModule } from '../tenant/tenant.module.js';
+import { RoleModule } from '../role/role.module.js';
 
 @Global()
 @Module({
@@ -27,6 +28,7 @@ import { TenantModule } from '../tenant/tenant.module.js';
     }),
     AccountModule,
     TenantModule,
+    RoleModule,
   ],
   controllers: [AuthController],
   providers: [

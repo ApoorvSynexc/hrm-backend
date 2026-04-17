@@ -3,12 +3,14 @@ import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { UserRepository } from '../account/repositories/user.repository.js';
 import {
   TenantRepository,
-  RoleRepository,
-  PermissionRepository,
-  RolePermissionRepository,
   WorkingHoursRepository,
   WorkingDayRepository,
 } from './repositories/index.js';
+import {
+  RoleRepository,
+  PermissionRepository,
+  RolePermissionRepository,
+} from '../role/repositories/index.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
 import { ConfigureWorkingHoursDto, ConfigureWorkingDaysDto } from './dto/configure-working-hours.dto.js';
 import { DEFAULT_ROLE_PERMISSIONS, DEFAULT_ROLES } from '../../assets/default/index.js';

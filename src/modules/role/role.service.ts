@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { RoleRepository, PermissionRepository, RolePermissionRepository } from '../tenant/repositories/index.js';
+import { RoleRepository, PermissionRepository, RolePermissionRepository } from './repositories/index.js';
 import { CreateRoleDto, UpdateRoleDto, AssignPermissionDto } from './dto/index.js';
 
 @Injectable()

@@ -8,10 +8,12 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import type { JwtPayload } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
 @Controller('employees')
@@ -83,5 +85,28 @@ export class EmployeeController {
   ) {
     const employee = await this.employeeService.deleteEmployee(tenantId, id);
     return { message: 'common.deleted', data: employee };
+  }
+
+  /**
+   * Get all employees across all tenants (super admin only)
+   * GET /employees/all?tenantId=xxx&status=ACTIVE
+   */
+  @Get('all')
+  @Permissions('manage:all')
+  async getAllEmployees(
+    @CurrentUser() user: JwtPayload,
+    @Query('tenantId') tenantId?: string,
+    @Query('status') status?: string,
+  ) {
+    if (user.tenantId !== null && user.tenantId !== undefined) {
+      throw new ForbiddenException('Only super admin can access this endpoint');
+    }
+
+    const filters: any = {};
+    if (tenantId) filters.tenantId = tenantId;
+    if (status) filters.status = status;
+
+    const employees = await this.employeeService.getAllEmployees(filters);
+    return { message: 'common.fetched', data: employees };
   }
 }

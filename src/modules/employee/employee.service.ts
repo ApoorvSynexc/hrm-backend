@@ -3,22 +3,22 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { UserRepository } from '../account/repositories/user.repository.js';
+import { EmployeeRepository } from './repositories/employee.repository.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
 
 @Injectable()
 export class EmployeeService {
-  constructor(private userRepository: UserRepository) {}
+  constructor(private employeeRepository: EmployeeRepository) {}
 
   /**
    * Create a new employee
    */
   async createEmployee(tenantId: string, dto: CreateEmployeeDto) {
     // Check email uniqueness in tenant
-    const existingEmail = await this.userRepository.findByTenantAndEmail(
+    const existingEmail = await this.employeeRepository.find({
       tenantId,
-      dto.email,
-    );
+      email: dto.email,
+    });
 
     if (existingEmail) {
       throw new BadRequestException(
@@ -26,11 +26,10 @@ export class EmployeeService {
       );
     }
 
-    // Check employee code uniqueness in tenant
-    const existingCode = await this.userRepository.findByEmployeeCode(
-      tenantId,
-      dto.employeeCode,
-    );
+    // Check employee code uniqueness
+    const existingCode = await this.employeeRepository.find({
+      employeeCode: dto.employeeCode,
+    });
 
     if (existingCode) {
       throw new BadRequestException(
@@ -39,7 +38,7 @@ export class EmployeeService {
     }
 
     // Create employee
-    return await this.userRepository.create({
+    return await this.employeeRepository.create({
       tenantId,
       email: dto.email,
       firstName: dto.firstName,
@@ -52,8 +51,7 @@ export class EmployeeService {
       salary: dto.salary ? parseFloat(dto.salary) : null,
       employmentStatus: 'ACTIVE',
       status: 'ACTIVE',
-      // Note: password must be set separately in a separate API or flow
-      passwordHash: '', // Will be set to a default or temporary password
+      passwordHash: '',
     });
   }
 
@@ -61,27 +59,24 @@ export class EmployeeService {
    * List all employees in a tenant (excluding deleted)
    */
   async listEmployees(tenantId: string) {
-    return await this.userRepository.findManyByTenant(tenantId, {
-      status: { not: 'DELETED' },
-      employeeCode: { not: null }, // Only actual employees
-    });
+    const result = await this.employeeRepository.findAll(
+      { tenantId, status: { not: 'DELETED' } },
+      { pagination: false },
+    );
+    return result.data;
   }
 
   /**
    * Get single employee by ID
    */
   async getEmployeeById(tenantId: string, employeeId: string) {
-    const employee = await this.userRepository.findByTenantAndId(
+    const employee = await this.employeeRepository.find({
+      id: employeeId,
       tenantId,
-      employeeId,
-    );
+    });
 
     if (!employee) {
       throw new NotFoundException('Employee not found');
-    }
-
-    if (!employee.employeeCode) {
-      throw new NotFoundException('User is not an employee');
     }
 
     return employee;
@@ -95,15 +90,15 @@ export class EmployeeService {
     employeeId: string,
     dto: UpdateEmployeeDto,
   ) {
-    // Get existing employee to verify it exists and has employee fields
+    // Get existing employee to verify it exists
     const employee = await this.getEmployeeById(tenantId, employeeId);
 
     // Check email uniqueness if being changed
     if (dto.email && dto.email !== employee.email) {
-      const existingEmail = await this.userRepository.findByTenantAndEmail(
+      const existingEmail = await this.employeeRepository.find({
         tenantId,
-        dto.email,
-      );
+        email: dto.email,
+      });
 
       if (existingEmail) {
         throw new BadRequestException(
@@ -123,7 +118,7 @@ export class EmployeeService {
     if (dto.hireDate !== undefined) updateData.hireDate = new Date(dto.hireDate);
     if (dto.salary !== undefined) updateData.salary = parseFloat(dto.salary);
 
-    return await this.userRepository.update(employeeId, updateData);
+    return await this.employeeRepository.update({ id: employeeId }, updateData);
   }
 
   /**
@@ -134,9 +129,32 @@ export class EmployeeService {
     await this.getEmployeeById(tenantId, employeeId);
 
     // Soft delete: mark as DELETED
-    return await this.userRepository.update(employeeId, {
-      status: 'DELETED',
-      employmentStatus: 'TERMINATED',
+    return await this.employeeRepository.update(
+      { id: employeeId },
+      {
+        status: 'DELETED',
+        employmentStatus: 'TERMINATED',
+      },
+    );
+  }
+
+  /**
+   * Get all employees across all tenants (for super admin) with optional filters
+   */
+  async getAllEmployees(filters?: { tenantId?: string; status?: string }) {
+    const where: any = { status: { not: 'DELETED' } };
+
+    if (filters?.tenantId) {
+      where.tenantId = filters.tenantId;
+    }
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    const result = await this.employeeRepository.findAll(where, {
+      pagination: false,
     });
+    return result.data;
   }
 }

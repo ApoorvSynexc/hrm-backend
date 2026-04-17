@@ -21,9 +21,9 @@ export class CreateEmployeeDto {
   phone?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(50)
-  employeeCode: string;
+  employeeCode?: string;
 
   @IsString()
   @IsNotEmpty()

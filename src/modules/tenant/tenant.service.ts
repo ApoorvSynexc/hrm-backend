@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { UserRepository } from '../account/repositories/user.repository.js';
+import { EmployeeRepository } from '../employee/repositories/employee.repository.js';
 import {
   TenantRepository,
   WorkingHoursRepository,
@@ -25,6 +26,7 @@ export class TenantService {
     private permissionRepository: PermissionRepository,
     private rolePermissionRepository: RolePermissionRepository,
     private userRepository: UserRepository,
+    private employeeRepository: EmployeeRepository,
     private workingHoursRepository: WorkingHoursRepository,
     private workingDayRepository: WorkingDayRepository,
   ) {}
@@ -182,12 +184,18 @@ export class TenantService {
       }
 
       const passwordHash = await bcrypt.hash(dto.adminPassword, 10);
+      const adminEmployeeCode = await this.employeeRepository.getNextEmployeeCode(
+        newTenant.id,
+        'employee',
+        tx,
+      );
       const createdUser = await this.userRepository.create(
         {
           email: dto.adminEmail,
           passwordHash,
           firstName: 'Admin',
           lastName: 'User',
+          employeeCode: adminEmployeeCode,
           tenantId: newTenant.id,
           roleId: adminRole.id,
           status: 'ACTIVE',

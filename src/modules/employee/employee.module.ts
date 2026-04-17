@@ -6,5 +6,6 @@ import { EmployeeRepository } from './repositories/employee.repository.js';
 @Module({
   controllers: [EmployeeController],
   providers: [EmployeeService, EmployeeRepository],
+  exports: [EmployeeRepository],
 })
 export class EmployeeModule {}

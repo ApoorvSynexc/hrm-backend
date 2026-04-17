@@ -26,16 +26,8 @@ export class EmployeeService {
       );
     }
 
-    // Check employee code uniqueness
-    const existingCode = await this.employeeRepository.find({
-      employeeCode: dto.employeeCode,
-    });
-
-    if (existingCode) {
-      throw new BadRequestException(
-        `Employee code "${dto.employeeCode}" is already in use`,
-      );
-    }
+    // Auto-generate employee code
+    const employeeCode = await this.employeeRepository.getNextEmployeeCode(tenantId, 'employee');
 
     // Create employee
     return await this.employeeRepository.create({
@@ -44,7 +36,7 @@ export class EmployeeService {
       firstName: dto.firstName,
       lastName: dto.lastName,
       phone: dto.phone,
-      employeeCode: dto.employeeCode,
+      employeeCode,
       departmentId: dto.departmentId,
       designation: dto.designation,
       hireDate: new Date(dto.hireDate),

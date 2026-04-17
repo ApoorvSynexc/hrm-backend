@@ -114,6 +114,7 @@ model Tenant {
   workingDays               WorkingDay[]
   holidays                  Holiday[]
   leaveBalances             LeaveBalance[]
+  counters                  Counter[]
 }
 
 model WorkingHours {
@@ -397,4 +398,17 @@ model LeaveBalance {
   @@index([tenantId])
   @@index([userId])
   @@index([tenantId, year])
+}
+
+model Counter {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String   // e.g., "employee", "department", etc.
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, name], name: "uk_counter_tenant_name")
+  @@index([tenantId])
 }

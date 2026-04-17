@@ -108,7 +108,6 @@ export class EmployeeController {
       limit: limit ? Number(limit) : 10,
       page: page ? Number(page) : 1,
     });
-    console.log({result});
     
     return { message: 'common.fetched', data: result.data, meta: result.meta };
   }

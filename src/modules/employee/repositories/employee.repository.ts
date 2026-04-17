@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
+import { CounterRepository } from '../../../common/repositories/counter.repository.js';
 import type { PrismaClient } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 @Injectable()
 export class EmployeeRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private counterRepository: CounterRepository,
+  ) {}
 
   private client(tx?: TX) {
     return tx ?? this.prisma;
@@ -132,5 +136,25 @@ export class EmployeeRepository {
     return this.client(tx).user.delete({
       where: where as any,
     });
+  }
+
+  /**
+   * Generate next employee code for a tenant (format: ORG001, ORG002, etc.)
+   * Takes tenantId and tableName, fetches tenant name internally
+   */
+  async getNextEmployeeCode(tenantId: string, tableName: string, tx?: TX): Promise<string> {
+    const tenant = await this.client(tx).tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+
+    if (!tenant) {
+      throw new Error('Tenant not found');
+    }
+
+    const prefix = tenant.name.substring(0, 3).toUpperCase();
+    const nextSequence = await this.counterRepository.getNextSequence(tenantId, tableName, tx);
+
+    return `${prefix}${String(nextSequence).padStart(3, '0')}`;
   }
 }

@@ -6,9 +6,10 @@ import { WorkingHoursRepository } from './repositories/working-hours.repository.
 import { WorkingDayRepository } from './repositories/working-day.repository.js';
 import { AccountModule } from '../account/account.module.js';
 import { RoleModule } from '../role/role.module.js';
+import { EmployeeModule } from '../employee/employee.module.js';
 
 @Module({
-  imports: [AccountModule, RoleModule],
+  imports: [AccountModule, RoleModule, EmployeeModule],
   controllers: [TenantController],
   providers: [
     TenantService,

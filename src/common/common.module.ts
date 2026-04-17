@@ -3,11 +3,13 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { I18nService } from './services/i18n.service.js';
 import { LoggingInterceptor } from './interceptors/logging.interceptor.js';
 import { TransformInterceptor } from './interceptors/transform.interceptor.js';
+import { CounterRepository } from './repositories/counter.repository.js';
 
 @Global()
 @Module({
   providers: [
     I18nService,
+    CounterRepository,
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
@@ -17,6 +19,6 @@ import { TransformInterceptor } from './interceptors/transform.interceptor.js';
       useClass: TransformInterceptor,
     },
   ],
-  exports: [I18nService],
+  exports: [I18nService, CounterRepository],
 })
 export class CommonModule {}

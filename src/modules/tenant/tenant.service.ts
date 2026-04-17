@@ -71,7 +71,7 @@ export class TenantService {
 
   async createTenant(dto: CreateTenantDto) {
     // 1. Verify admin email doesn't already exist
-    const existingAdmin = await this.userRepository.findFirst({
+    const existingAdmin = await this.userRepository.find({
       email: dto.adminEmail,
     });
     if (existingAdmin) {

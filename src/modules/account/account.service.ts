@@ -34,7 +34,7 @@ export class AccountService {
 
     // Check email uniqueness if email is being changed
     if (dto.email && dto.email !== user.email) {
-      const existingUser = await this.userRepository.findFirst({
+      const existingUser = await this.userRepository.find({
         email: dto.email,
         id: { not: userId },
       });
@@ -47,11 +47,14 @@ export class AccountService {
     }
 
     // Update user
-    return await this.userRepository.update(userId, {
-      email: dto.email,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      phone: dto.phone,
-    });
+    return await this.userRepository.update(
+      { id: userId },
+      {
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phone: dto.phone,
+      },
+    );
   }
 }

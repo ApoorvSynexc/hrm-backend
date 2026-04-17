@@ -23,24 +23,20 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
-    let user;
-
-    if (!dto.tenantSlug) {
-      // SUPER_ADMIN login — find user with tenantId = null
-      user = await this.userRepository.findSuperAdmin(dto.email);
-    } else {
-      // Tenant user login
-      const tenant = await this.tenantRepository.find({ slug: dto.tenantSlug });
-
-      if (!tenant || tenant.status !== 'ACTIVE') {
-        throw new UnauthorizedException('Invalid or inactive tenant');
-      }
-
-      user = await this.userRepository.findByTenantAndEmail(tenant.id, dto.email);
-    }
+    // Find user by email first
+    const user = await this.userRepository.find({ email: dto.email });
 
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // Validate tenant for non-super-admin users
+    if (user.tenantId) {
+      // Tenant user — validate tenant is active by user's tenantId
+      const tenant = await this.tenantRepository.find({ id: user.tenantId });
+      if (!tenant || tenant.status !== 'ACTIVE') {
+        throw new UnauthorizedException('Tenant is inactive or not found');
+      }
     }
 
     // Verify password
@@ -49,12 +45,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // Fetch user with role for token payload
+    const userWithRole = await this.userRepository.findByIdWithRole(user.id);
+
     // Generate tokens
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       tenantId: user.tenantId || '',
-      role: user.role?.name ?? '',
+      role: userWithRole?.role?.name ?? '',
     };
 
     const accessToken = await this.jwtService.signAsync(payload);

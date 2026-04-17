@@ -104,6 +104,29 @@ model Tenant {
   attendances               Attendance[]
   attendanceRegularizations AttendanceRegularization[]
   domains                   TenantDomain[]
+  workingHours              WorkingHours?
+  workingDays               WorkingDay[]
+}
+
+model WorkingHours {
+  id                    String   @id @default(cuid())
+  tenantId              String   @unique
+  workingHoursPerDay    Int      @default(480)  // minutes: 480 = 8 hours, 420 = 7 hours, etc
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model WorkingDay {
+  id         String   @id @default(cuid())
+  tenantId   String
+  day        String   // "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
+  isWorking  Boolean  @default(true)  // true = working day, false = off (holiday, weekend)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, day])
 }
 
 model TenantDomain {

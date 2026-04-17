@@ -10,6 +10,7 @@ import { AccountModule } from './modules/account/account.module.js';
 import { DepartmentModule } from './modules/department/department.module.js';
 import { RoleModule } from './modules/role/role.module.js';
 import { EmployeeModule } from './modules/employee/employee.module.js';
+import { AttendanceModule } from './modules/attendance/attendance.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { EmployeeModule } from './modules/employee/employee.module.js';
     DepartmentModule,
     RoleModule,
     EmployeeModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

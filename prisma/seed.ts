@@ -1,129 +1,123 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
+import { PrismaClient } from '../generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client.js';
-import {
-  DEFAULT_PERMISSIONS,
-  DEFAULT_ROLE_PERMISSIONS,
-  DEFAULT_ROLES,
-  DEFAULT_SUPER_ADMIN,
-} from '../src/assets/default/index.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
-const permissionKey = (action: string, subject: string) => `${action}:${subject}`;
-
 async function seedGlobalRoles() {
-  // Only seed SUPER_ADMIN role (global-only)
-  // Other tenant roles (ADMIN, HR, RM, EMPLOYEE) are created on-the-fly when creating a tenant
-  const superAdminRole = DEFAULT_ROLES.find((role) => role.name === 'SUPER_ADMIN');
+  const superAdminRole = {
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    name: 'SUPER_ADMIN',
+    description: 'Global application owner with full access',
+    isSystem: true,
+    tenantId: null,
+  };
 
-  if (superAdminRole) {
-    await prisma.role.upsert({
-      where: { id: superAdminRole.id },
-      update: {
-        name: superAdminRole.name,
-        description: superAdminRole.description,
-        isSystem: superAdminRole.isSystem,
-      },
-      create: superAdminRole,
-    });
-  }
+  await prisma.role.upsert({
+    where: { id: superAdminRole.id },
+    update: {
+      name: superAdminRole.name,
+      description: superAdminRole.description,
+      isSystem: superAdminRole.isSystem,
+    },
+    create: superAdminRole,
+  });
+
+  console.log('✓ Global roles seeded');
 }
 
 async function seedGlobalPermissions() {
-  // All permissions are global (no tenantId)
-  for (const permission of DEFAULT_PERMISSIONS) {
+  const permissions = [
+    { id: '660e8400-e29b-41d4-a716-446655440000', action: 'manage', subject: 'all', description: 'Full system access (SUPER_ADMIN only)' },
+    { id: '660e8400-e29b-41d4-a716-446655440001', action: 'create', subject: 'employee', description: 'Create employees' },
+    { id: '660e8400-e29b-41d4-a716-446655440002', action: 'read', subject: 'employee', description: 'View employees' },
+    { id: '660e8400-e29b-41d4-a716-446655440003', action: 'update', subject: 'employee', description: 'Update employees' },
+    { id: '660e8400-e29b-41d4-a716-446655440004', action: 'delete', subject: 'employee', description: 'Delete employees' },
+    { id: '660e8400-e29b-41d4-a716-446655440005', action: 'create', subject: 'department', description: 'Create departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440006', action: 'read', subject: 'department', description: 'View departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440007', action: 'update', subject: 'department', description: 'Update departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440008', action: 'delete', subject: 'department', description: 'Delete departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440009', action: 'create', subject: 'role', description: 'Create roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440010', action: 'read', subject: 'role', description: 'View roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440011', action: 'update', subject: 'role', description: 'Update roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440012', action: 'delete', subject: 'role', description: 'Delete roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440013', action: 'manage', subject: 'role', description: 'Manage role permissions' },
+    { id: '660e8400-e29b-41d4-a716-446655440014', action: 'read', subject: 'permission', description: 'View permissions' },
+    { id: '660e8400-e29b-41d4-a716-446655440015', action: 'create', subject: 'attendance', description: 'Create attendance records' },
+    { id: '660e8400-e29b-41d4-a716-446655440016', action: 'read', subject: 'attendance', description: 'View attendance records' },
+    { id: '660e8400-e29b-41d4-a716-446655440017', action: 'create', subject: 'attendance_regularization', description: 'Create attendance regularization requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440018', action: 'read', subject: 'attendance_regularization', description: 'View regularization requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440019', action: 'approve', subject: 'attendance_regularization', description: 'Approve regularization requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440020', action: 'read', subject: 'tenant', description: 'View tenant config' },
+    { id: '660e8400-e29b-41d4-a716-446655440021', action: 'manage', subject: 'tenant', description: 'Manage tenant config' },
+  ];
+
+  for (const perm of permissions) {
     await prisma.permission.upsert({
-      where: { id: permission.id },
-      update: {
-        action: permission.action,
-        subject: permission.subject,
-        description: permission.description,
-      },
-      create: {
-        id: permission.id,
-        action: permission.action,
-        subject: permission.subject,
-        description: permission.description,
-      },
+      where: { id: perm.id },
+      update: { action: perm.action as any, subject: perm.subject as any, description: perm.description },
+      create: { ...perm, action: perm.action as any, subject: perm.subject as any },
     });
   }
+
+  console.log(`✓ ${permissions.length} permissions seeded`);
 }
 
 async function seedSuperAdminRolePermissions() {
-  const superAdminRole = DEFAULT_ROLES.find((r) => r.name === 'SUPER_ADMIN');
-  if (!superAdminRole) {
-    throw new Error('SUPER_ADMIN role not found in DEFAULT_ROLES');
-  }
+  const superAdminRole = { id: '550e8400-e29b-41d4-a716-446655440001' };
+  const allPermission = { id: '660e8400-e29b-41d4-a716-446655440000' };
 
-  const permissions = await prisma.permission.findMany();
-  const permissionByKey = new Map(
-    permissions.map((permission) => [
-      permissionKey(permission.action, permission.subject),
-      permission,
-    ]),
-  );
+  const existing = await prisma.rolePermission.findFirst({
+    where: {
+      tenantId: null,
+      roleId: superAdminRole.id,
+      permissionId: allPermission.id,
+    },
+  });
 
-  for (const permissionName of DEFAULT_ROLE_PERMISSIONS.SUPER_ADMIN) {
-    const permission = permissionByKey.get(permissionName);
-
-    if (!permission) {
-      throw new Error(`Missing permission: ${permissionName}`);
-    }
-
-    const existingRolePermission = await prisma.rolePermission.findFirst({
-      where: {
+  if (!existing) {
+    await prisma.rolePermission.create({
+      data: {
         tenantId: null,
         roleId: superAdminRole.id,
-        permissionId: permission.id,
+        permissionId: allPermission.id,
       },
     });
-
-    if (!existingRolePermission) {
-      await prisma.rolePermission.create({
-        data: {
-          tenantId: null,
-          roleId: superAdminRole.id,
-          permissionId: permission.id,
-        },
-      });
-    }
   }
+
+  console.log('✓ SUPER_ADMIN role permissions seeded');
 }
 
 async function seedSuperAdminUser() {
-  const superAdminRole = DEFAULT_ROLES.find((r) => r.name === 'SUPER_ADMIN');
-  if (!superAdminRole) {
-    throw new Error('SUPER_ADMIN role not found in DEFAULT_ROLES');
-  }
-
-  // Hash the plain-text password with bcrypt
-  const hashedPassword = await bcrypt.hash(DEFAULT_SUPER_ADMIN.passwordHash, 12);
+  const superAdminRole = { id: '550e8400-e29b-41d4-a716-446655440001' };
+  const hashedPassword = await bcrypt.hash('12345678', 12);
 
   await prisma.user.upsert({
-    where: { id: DEFAULT_SUPER_ADMIN.id },
+    where: { id: '550e8400-e29b-41d4-a716-446655440000' },
     update: {
-      email: DEFAULT_SUPER_ADMIN.email,
+      email: 'apoorv@yopmail.com',
       passwordHash: hashedPassword,
-      firstName: DEFAULT_SUPER_ADMIN.firstName,
-      lastName: DEFAULT_SUPER_ADMIN.lastName,
-      status: DEFAULT_SUPER_ADMIN.status,
+      firstName: 'Super',
+      lastName: 'Admin',
+      status: 'ACTIVE',
       roleId: superAdminRole.id,
     },
     create: {
-      id: DEFAULT_SUPER_ADMIN.id,
-      tenantId: DEFAULT_SUPER_ADMIN.tenantId,
-      email: DEFAULT_SUPER_ADMIN.email,
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      tenantId: null,
+      email: 'apoorv@yopmail.com',
       passwordHash: hashedPassword,
-      firstName: DEFAULT_SUPER_ADMIN.firstName,
-      lastName: DEFAULT_SUPER_ADMIN.lastName,
-      status: DEFAULT_SUPER_ADMIN.status,
+      firstName: 'Super',
+      lastName: 'Admin',
+      status: 'ACTIVE',
       roleId: superAdminRole.id,
     },
   });
+
+  console.log('✓ SUPER_ADMIN user seeded (apoorv@yopmail.com / 12345678)');
 }
 
 async function main() {
@@ -131,15 +125,15 @@ async function main() {
   await seedGlobalPermissions();
   await seedSuperAdminRolePermissions();
   await seedSuperAdminUser();
+  console.log('\n✅ Database seeding complete!');
 }
 
 main()
   .then(async () => {
     await prisma.$disconnect();
-    console.log('Default seed data inserted.');
   })
   .catch(async (error) => {
-    console.error(error);
+    console.error('❌ Seed error:', error);
     await prisma.$disconnect();
     process.exit(1);
   });

@@ -6,8 +6,11 @@ import {
   RoleRepository,
   PermissionRepository,
   RolePermissionRepository,
+  WorkingHoursRepository,
+  WorkingDayRepository,
 } from './repositories/index.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
+import { ConfigureWorkingHoursDto, ConfigureWorkingDaysDto } from './dto/configure-working-hours.dto.js';
 import { DEFAULT_ROLE_PERMISSIONS, DEFAULT_ROLES } from '../../assets/default/index.js';
 import bcrypt from 'bcrypt';
 
@@ -20,6 +23,8 @@ export class TenantService {
     private permissionRepository: PermissionRepository,
     private rolePermissionRepository: RolePermissionRepository,
     private userRepository: UserRepository,
+    private workingHoursRepository: WorkingHoursRepository,
+    private workingDayRepository: WorkingDayRepository,
   ) {}
 
   /**
@@ -272,5 +277,52 @@ export class TenantService {
 
     // Return updated tenant
     return this.tenantRepository.findByIdWithDetails(tenantId);
+  }
+
+  async configureWorkingHours(tenantId: string, dto: ConfigureWorkingHoursDto) {
+    const tenant = await this.tenantRepository.findById(tenantId);
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
+    }
+
+    return await this.workingHoursRepository.upsert(tenantId, {
+      workingHoursPerDay: dto.workingHoursPerDay,
+    });
+  }
+
+  async configureWorkingDays(tenantId: string, dto: ConfigureWorkingDaysDto) {
+    const tenant = await this.tenantRepository.findById(tenantId);
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
+    }
+
+    const validDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    for (const day of dto.workingDays) {
+      if (!validDays.includes(day)) {
+        throw new BadRequestException(`Invalid day: ${day}. Must be one of: ${validDays.join(', ')}`);
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.workingDayRepository.deleteByTenant(tenantId, tx);
+
+      const workingDaysData = validDays.map((day) => ({
+        tenantId,
+        day,
+        isWorking: dto.workingDays.includes(day),
+      }));
+
+      await this.workingDayRepository.createMany(workingDaysData, tx);
+    });
+
+    return await this.workingDayRepository.findByTenantId(tenantId);
+  }
+
+  async getWorkingHoursConfig(tenantId: string) {
+    return await this.workingHoursRepository.findByTenantId(tenantId);
+  }
+
+  async getWorkingDaysConfig(tenantId: string) {
+    return await this.workingDayRepository.findByTenantId(tenantId);
   }
 }

@@ -38,7 +38,7 @@ export class TenantController {
       page: page ? Number(page) : 1,
       search: search || '',
     });
-    return { message: 'common.fetched', data: result };
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 
   @Patch()

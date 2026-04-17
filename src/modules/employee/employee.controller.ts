@@ -16,7 +16,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
-@Controller('employees')
+@Controller('employee')
 export class EmployeeController {
   constructor(private employeeService: EmployeeService) {}
 
@@ -88,25 +88,28 @@ export class EmployeeController {
   }
 
   /**
-   * Get all employees across all tenants (super admin only)
-   * GET /employees/all?tenantId=xxx&status=ACTIVE
+   * Get all employees across all tenants (excludes super admin)
+   * GET /employees/all?tenantId=xxx&status=ACTIVE&limit=10&page=1
    */
   @Get('all')
   @Permissions('manage:all')
-  async getAllEmployees(
+  async getAllEmployeesForAmin(
     @CurrentUser() user: JwtPayload,
     @Query('tenantId') tenantId?: string,
     @Query('status') status?: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
   ) {
-    if (user.tenantId !== null && user.tenantId !== undefined) {
-      throw new ForbiddenException('Only super admin can access this endpoint');
-    }
-
-    const filters: any = {};
+    const filters: any = { tenantId: { not: null } };
     if (tenantId) filters.tenantId = tenantId;
     if (status) filters.status = status;
 
-    const employees = await this.employeeService.getAllEmployees(filters);
-    return { message: 'common.fetched', data: employees };
+    const result = await this.employeeService.getAllEmployees(filters, {
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+    });
+    console.log({result});
+    
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 }

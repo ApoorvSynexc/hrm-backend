@@ -13,7 +13,7 @@ import { CreateTenantDto, UpdateTenantDto, ConfigureWorkingHoursDto, ConfigureWo
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 
-@Controller('tenants')
+@Controller('tenant')
 export class TenantController {
   constructor(private tenantService: TenantService) {}
 
@@ -24,7 +24,7 @@ export class TenantController {
     return this.tenantService.createTenant(dto);
   }
 
-  @Get()
+  @Get("list")
   @Permissions('read:tenant')
   async list(
     @Query('pagination') pagination?: boolean,

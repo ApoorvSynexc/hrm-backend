@@ -139,9 +139,12 @@ export class EmployeeService {
   }
 
   /**
-   * Get all employees across all tenants (for super admin) with optional filters
+   * Get all employees across all tenants (for super admin) with optional filters and pagination
    */
-  async getAllEmployees(filters?: { tenantId?: string; status?: string }) {
+  async getAllEmployees(
+    filters?: { tenantId?: string; status?: string },
+    options?: { limit?: number; page?: number },
+  ) {
     const where: any = { status: { not: 'DELETED' } };
 
     if (filters?.tenantId) {
@@ -152,9 +155,9 @@ export class EmployeeService {
       where.status = filters.status;
     }
 
-    const result = await this.employeeRepository.findAll(where, {
-      pagination: false,
+    return await this.employeeRepository.findAll(where, {
+      limit: options?.limit || 10,
+      page: options?.page || 1,
     });
-    return result.data;
   }
 }

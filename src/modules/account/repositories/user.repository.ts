@@ -33,12 +33,20 @@ export class UserRepository {
   }
 
   /**
-   * Find a user by ID with role (no tenant filter)
+   * Find a user by ID with role and permissions (no tenant filter)
    */
   async findByIdWithRole(id: string, tx?: TX) {
     return this.client(tx).user.findUnique({
       where: { id },
-      include: { role: true },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+            },
+          },
+        },
+      },
     });
   }
 

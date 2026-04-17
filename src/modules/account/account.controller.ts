@@ -1,17 +1,17 @@
 import {
   Controller,
   Get,
-  Patch,
   Body,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { AccountService } from './account.service.js';
 import { UpdateUserDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator.js';
 
-@Controller('my-profile')
+@Controller('account')
 export class AccountController {
   constructor(private accountService: AccountService) {}
 
@@ -20,7 +20,7 @@ export class AccountController {
    * GET /my-profile
    * No special permission required - accessible to any authenticated user
    */
-  @Get()
+  @Get("my-profile")
   async getProfile(@CurrentUser() current: JwtPayload) {
     const user = await this.accountService.getUserById(current.sub);
     return { message: 'common.fetched', data: user };
@@ -31,7 +31,7 @@ export class AccountController {
    * PATCH /my-profile
    * No special permission required - accessible to any authenticated user
    */
-  @Patch()
+  @Put("my-profile")
   @HttpCode(HttpStatus.OK)
   async updateProfile(
     @CurrentUser() current: JwtPayload,

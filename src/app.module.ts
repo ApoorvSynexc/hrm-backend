@@ -11,6 +11,7 @@ import { DepartmentModule } from './modules/department/department.module.js';
 import { RoleModule } from './modules/role/role.module.js';
 import { EmployeeModule } from './modules/employee/employee.module.js';
 import { AttendanceModule } from './modules/attendance/attendance.module.js';
+import { LeaveModule } from './modules/leave/leave.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module.js';
     RoleModule,
     EmployeeModule,
     AttendanceModule,
+    LeaveModule,
   ],
   controllers: [AppController],
   providers: [AppService],

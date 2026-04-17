@@ -97,17 +97,18 @@ export class TenantService {
     }
 
     // Run entire operation in a transaction
-    return await this.prisma.$transaction(async (tx) => {
-      // 1. Create the tenant with domain
-      const newTenant = await tx.tenant.create({
-        data: {
-          name: dto.name,
-          slug,
-          domains: {
-            create: [{ domain }],
+    return await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Create the tenant with domain
+        const newTenant = await tx.tenant.create({
+          data: {
+            name: dto.name,
+            slug,
+            domains: {
+              create: [{ domain }],
+            },
           },
-        },
-      });
+        });
 
       // 2. Get tenant roles from constants (exclude SUPER_ADMIN which is global-only)
       const tenantRolesToCreate = DEFAULT_ROLES.filter(
@@ -223,7 +224,11 @@ export class TenantService {
         ...completeTenant,
         adminUser,
       };
-    });
+      },
+      {
+        timeout: 10000,
+      }
+    );
   }
 
   /**
@@ -324,5 +329,14 @@ export class TenantService {
 
   async getWorkingDaysConfig(tenantId: string) {
     return await this.workingDayRepository.findByTenantId(tenantId);
+  }
+
+  async listTenants(options: {
+    pagination?: boolean;
+    limit?: number;
+    page?: number;
+    search?: string;
+  }) {
+    return await this.tenantRepository.findMany(options);
   }
 }

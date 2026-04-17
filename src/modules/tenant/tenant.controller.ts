@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Body,
+  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -21,6 +22,23 @@ export class TenantController {
   @Permissions('manage:all')
   create(@Body() dto: CreateTenantDto) {
     return this.tenantService.createTenant(dto);
+  }
+
+  @Get()
+  @Permissions('read:tenant')
+  async list(
+    @Query('pagination') pagination?: boolean,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
+    @Query('search') search?: string,
+  ) {
+    const result = await this.tenantService.listTenants({
+      pagination: pagination !== false,
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+      search: search || '',
+    });
+    return { message: 'common.fetched', data: result };
   }
 
   @Patch()

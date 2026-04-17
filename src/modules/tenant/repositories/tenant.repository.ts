@@ -74,4 +74,66 @@ export class TenantRepository {
       data,
     });
   }
+
+  /**
+   * Find many tenants with pagination and search
+   */
+  async findMany(
+    options: {
+      pagination?: boolean;
+      limit?: number;
+      page?: number;
+      search?: string;
+    },
+    tx?: TX,
+  ) {
+    const {
+      pagination = true,
+      limit = 10,
+      page = 1,
+      search = '',
+    } = options;
+
+    const skip = pagination ? (page - 1) * limit : 0;
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { slug: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [tenants, total] = await Promise.all([
+      this.client(tx).tenant.findMany({
+        where,
+        include: {
+          domains: {
+            select: {
+              domain: true,
+            },
+          }
+        },
+        skip: pagination ? skip : undefined,
+        take: pagination ? limit : undefined,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.client(tx).tenant.count({ where }),
+    ]);
+
+    const result: any = {
+      data: tenants,
+    };
+
+    if (pagination) {
+      result.meta = {
+        totalRecords: total,
+        totalPages: Math.ceil(total / limit),
+        page,
+        limit,
+      };
+    }
+
+    return result;
+  }
 }

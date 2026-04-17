@@ -12,6 +12,8 @@ import { RoleModule } from './modules/role/role.module.js';
 import { EmployeeModule } from './modules/employee/employee.module.js';
 import { AttendanceModule } from './modules/attendance/attendance.module.js';
 import { LeaveModule } from './modules/leave/leave.module.js';
+import { HolidayModule } from './modules/holiday/holiday.module.js';
+import { LeaveBalanceModule } from './modules/leave-balance/leave-balance.module.js';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { LeaveModule } from './modules/leave/leave.module.js';
     EmployeeModule,
     AttendanceModule,
     LeaveModule,
+    HolidayModule,
+    LeaveBalanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

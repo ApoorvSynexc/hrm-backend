@@ -57,6 +57,12 @@ enum RegularizationStatus {
   CANCELLED
 }
 
+enum HolidayType {
+  PUBLIC
+  FESTIVAL
+  OPTIONAL
+}
+
 enum Status {
   ACTIVE
   INACTIVE
@@ -106,6 +112,8 @@ model Tenant {
   domains                   TenantDomain[]
   workingHours              WorkingHours?
   workingDays               WorkingDay[]
+  holidays                  Holiday[]
+  leaveBalances             LeaveBalance[]
 }
 
 model WorkingHours {
@@ -172,6 +180,7 @@ model User {
   attendances                       Attendance[]
   attendanceRegularizations         AttendanceRegularization[]
   reviewedAttendanceRegularizations AttendanceRegularization[] @relation("ReviewedBy")
+  leaveBalances                     LeaveBalance[]
 
   @@unique([tenantId, email])
   @@unique([tenantId, employeeCode]) // Only enforced when employeeCode is set
@@ -353,4 +362,39 @@ model AttendanceRegularization {
   @@index([reviewedByUserId])
   @@index([tenantId, status])
   @@index([tenantId, date])
+}
+
+model Holiday {
+  id        String      @id @default(cuid())
+  tenantId  String
+  name      String
+  date      DateTime
+  type      HolidayType
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+  @@index([tenantId])
+  @@index([tenantId, date])
+}
+
+model LeaveBalance {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String
+  year         Int
+  leaveType    LeaveType
+  totalDays    Int
+  usedDays     Int      @default(0)
+  remainingDays Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, year, leaveType])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([tenantId, year])
 }

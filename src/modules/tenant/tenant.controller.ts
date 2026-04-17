@@ -49,7 +49,7 @@ export class TenantController {
   }
 
   @Get('working-hours')
-  @Permissions('read:tenant')
+  @Permissions('read:working_hours')
   async getWorkingHours(@CurrentUser('tenantId') tenantId: string) {
     const config = await this.tenantService.getWorkingHoursConfig(tenantId);
     return { message: 'common.fetched', data: config };
@@ -57,7 +57,7 @@ export class TenantController {
 
   @Post('working-hours')
   @HttpCode(HttpStatus.OK)
-  @Permissions('manage:tenant')
+  @Permissions('update:working_hours')
   async configureWorkingHours(
     @CurrentUser('tenantId') tenantId: string,
     @Body() dto: ConfigureWorkingHoursDto,
@@ -67,7 +67,7 @@ export class TenantController {
   }
 
   @Get('working-days')
-  @Permissions('read:tenant')
+  @Permissions('read:working_days')
   async getWorkingDays(@CurrentUser('tenantId') tenantId: string) {
     const config = await this.tenantService.getWorkingDaysConfig(tenantId);
     return { message: 'common.fetched', data: config };
@@ -75,7 +75,7 @@ export class TenantController {
 
   @Post('working-days')
   @HttpCode(HttpStatus.OK)
-  @Permissions('manage:tenant')
+  @Permissions('update:working_days')
   async configureWorkingDays(
     @CurrentUser('tenantId') tenantId: string,
     @Body() dto: ConfigureWorkingDaysDto,

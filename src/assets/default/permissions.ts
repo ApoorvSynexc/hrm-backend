@@ -212,5 +212,37 @@ export const DEFAULT_PERMISSIONS = [
     description: 'Approve attendance regularization requests',
     tenantId: null,
   },
+
+  // Working hours configuration
+  {
+    id: '660e8400-e29b-41d4-a716-446655440028',
+    action: 'read',
+    subject: 'working_hours',
+    description: 'View working hours configuration',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440029',
+    action: 'update',
+    subject: 'working_hours',
+    description: 'Configure working hours',
+    tenantId: null,
+  },
+
+  // Working days configuration
+  {
+    id: '660e8400-e29b-41d4-a716-446655440030',
+    action: 'read',
+    subject: 'working_days',
+    description: 'View working days configuration',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440031',
+    action: 'update',
+    subject: 'working_days',
+    description: 'Configure working days',
+    tenantId: null,
+  },
 ] as const;
 

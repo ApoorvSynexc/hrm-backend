@@ -25,6 +25,12 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'update:department',
     'delete:department',
 
+    // Working Hours & Days Configuration
+    'read:working_hours',
+    'update:working_hours',
+    'read:working_days',
+    'update:working_days',
+
     // Leave Management
     'create:leave',
     'read:leave',
@@ -65,6 +71,10 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'read:department',
     'update:department',
     'delete:department',
+
+    // Working Hours & Days Configuration (Read-only)
+    'read:working_hours',
+    'read:working_days',
 
     // Leave Management
     'create:leave',

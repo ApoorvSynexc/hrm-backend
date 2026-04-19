@@ -13,6 +13,16 @@ export const DEFAULT_ROLE_PERMISSIONS = {
   ],
 
   ADMIN: [
+    // Role Management
+    'create:role',
+    'read:role',
+    'update:role',
+    'delete:role',
+    'manage:role',
+
+    // Permission Management (Read-only)
+    'read:permission',
+
     // Employee Management
     'create:employee',
     'read:employee',

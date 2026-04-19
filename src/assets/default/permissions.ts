@@ -42,30 +42,76 @@ export const DEFAULT_PERMISSIONS = [
     tenantId: null,
   },
 
-  // Department management
+  // Role management
   {
     id: '660e8400-e29b-41d4-a716-446655440005',
+    action: 'create',
+    subject: 'role',
+    description: 'Create roles',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440032',
+    action: 'read',
+    subject: 'role',
+    description: 'View roles',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440033',
+    action: 'update',
+    subject: 'role',
+    description: 'Update roles',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440034',
+    action: 'delete',
+    subject: 'role',
+    description: 'Delete roles',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440035',
+    action: 'manage',
+    subject: 'role',
+    description: 'Manage role permissions',
+    tenantId: null,
+  },
+
+  // Permission management
+  {
+    id: '660e8400-e29b-41d4-a716-446655440036',
+    action: 'read',
+    subject: 'permission',
+    description: 'View permissions',
+    tenantId: null,
+  },
+
+  // Department management
+  {
+    id: '660e8400-e29b-41d4-a716-446655440037',
     action: 'create',
     subject: 'department',
     description: 'Create departments',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440006',
+    id: '660e8400-e29b-41d4-a716-446655440038',
     action: 'read',
     subject: 'department',
     description: 'View departments',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440007',
+    id: '660e8400-e29b-41d4-a716-446655440039',
     action: 'update',
     subject: 'department',
     description: 'Update departments',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440008',
+    id: '660e8400-e29b-41d4-a716-446655440040',
     action: 'delete',
     subject: 'department',
     description: 'Delete departments',
@@ -74,35 +120,35 @@ export const DEFAULT_PERMISSIONS = [
 
   // Leave management
   {
-    id: '660e8400-e29b-41d4-a716-446655440009',
+    id: '660e8400-e29b-41d4-a716-446655440041',
     action: 'create',
     subject: 'leave',
     description: 'Create leave requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440010',
+    id: '660e8400-e29b-41d4-a716-446655440042',
     action: 'read',
     subject: 'leave',
     description: 'View leave requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440011',
+    id: '660e8400-e29b-41d4-a716-446655440043',
     action: 'update',
     subject: 'leave',
     description: 'Update leave requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440012',
+    id: '660e8400-e29b-41d4-a716-446655440044',
     action: 'delete',
     subject: 'leave',
     description: 'Delete leave requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440013',
+    id: '660e8400-e29b-41d4-a716-446655440045',
     action: 'approve',
     subject: 'leave',
     description: 'Approve leave requests',
@@ -111,35 +157,35 @@ export const DEFAULT_PERMISSIONS = [
 
   // Payroll management
   {
-    id: '660e8400-e29b-41d4-a716-446655440014',
+    id: '660e8400-e29b-41d4-a716-446655440046',
     action: 'create',
     subject: 'payroll',
     description: 'Create payroll records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440015',
+    id: '660e8400-e29b-41d4-a716-446655440047',
     action: 'read',
     subject: 'payroll',
     description: 'View payroll records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440016',
+    id: '660e8400-e29b-41d4-a716-446655440048',
     action: 'update',
     subject: 'payroll',
     description: 'Update payroll records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440017',
+    id: '660e8400-e29b-41d4-a716-446655440049',
     action: 'delete',
     subject: 'payroll',
     description: 'Delete payroll records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440018',
+    id: '660e8400-e29b-41d4-a716-446655440050',
     action: 'approve',
     subject: 'payroll',
     description: 'Approve payroll',
@@ -148,28 +194,28 @@ export const DEFAULT_PERMISSIONS = [
 
   // Attendance management
   {
-    id: '660e8400-e29b-41d4-a716-446655440019',
+    id: '660e8400-e29b-41d4-a716-446655440051',
     action: 'create',
     subject: 'attendance',
     description: 'Create attendance records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440020',
+    id: '660e8400-e29b-41d4-a716-446655440052',
     action: 'read',
     subject: 'attendance',
     description: 'View attendance records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440021',
+    id: '660e8400-e29b-41d4-a716-446655440053',
     action: 'update',
     subject: 'attendance',
     description: 'Update attendance records',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440022',
+    id: '660e8400-e29b-41d4-a716-446655440054',
     action: 'delete',
     subject: 'attendance',
     description: 'Delete attendance records',
@@ -178,35 +224,35 @@ export const DEFAULT_PERMISSIONS = [
 
   // Attendance regularization
   {
-    id: '660e8400-e29b-41d4-a716-446655440023',
+    id: '660e8400-e29b-41d4-a716-446655440055',
     action: 'create',
     subject: 'attendance_regularization',
     description: 'Request attendance regularization',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440024',
+    id: '660e8400-e29b-41d4-a716-446655440056',
     action: 'read',
     subject: 'attendance_regularization',
     description: 'View attendance regularization requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440025',
+    id: '660e8400-e29b-41d4-a716-446655440057',
     action: 'update',
     subject: 'attendance_regularization',
     description: 'Update attendance regularization requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440026',
+    id: '660e8400-e29b-41d4-a716-446655440058',
     action: 'delete',
     subject: 'attendance_regularization',
     description: 'Delete attendance regularization requests',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440027',
+    id: '660e8400-e29b-41d4-a716-446655440059',
     action: 'approve',
     subject: 'attendance_regularization',
     description: 'Approve attendance regularization requests',
@@ -215,14 +261,14 @@ export const DEFAULT_PERMISSIONS = [
 
   // Working hours configuration
   {
-    id: '660e8400-e29b-41d4-a716-446655440028',
+    id: '660e8400-e29b-41d4-a716-446655440060',
     action: 'read',
     subject: 'working_hours',
     description: 'View working hours configuration',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440029',
+    id: '660e8400-e29b-41d4-a716-446655440061',
     action: 'update',
     subject: 'working_hours',
     description: 'Configure working hours',
@@ -231,14 +277,14 @@ export const DEFAULT_PERMISSIONS = [
 
   // Working days configuration
   {
-    id: '660e8400-e29b-41d4-a716-446655440030',
+    id: '660e8400-e29b-41d4-a716-446655440062',
     action: 'read',
     subject: 'working_days',
     description: 'View working days configuration',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440031',
+    id: '660e8400-e29b-41d4-a716-446655440063',
     action: 'update',
     subject: 'working_days',
     description: 'Configure working days',

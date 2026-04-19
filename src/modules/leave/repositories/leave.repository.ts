@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/index.js'
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -14,7 +15,7 @@ export class LeaveRepository {
 
   async find(where: Record<string, any>, include?: Record<string, any>, tx?: TX) {
     return this.client(tx).leave.findFirst({
-      where: { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
+      where: { recordStatus: Status.ACTIVE, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } }, ...where },
       include: {
         user: true,
         tenant: true,
@@ -29,8 +30,8 @@ export class LeaveRepository {
     const skip = (page - 1) * limit;
 
     const finalWhere = where
-      ? { AND: [{ recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } }, where] }
-      : { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } };
+      ? { AND: [{ recordStatus: Status.ACTIVE, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } }, where] }
+      : { recordStatus: Status.ACTIVE, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } };
 
     const [data, total] = await Promise.all([
       this.client(tx).leave.findMany({
@@ -72,15 +73,15 @@ export class LeaveRepository {
 
   async update(where: Record<string, any>, data: any, tx?: TX) {
     return this.client(tx).leave.updateMany({
-      where: { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
+      where: { recordStatus: Status.ACTIVE, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } }, ...where },
       data,
     });
   }
 
   async delete(where: Record<string, any>, tx?: TX) {
     return this.client(tx).leave.updateMany({
-      where: { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
-      data: { recordStatus: 'DELETED' },
+      where: { recordStatus: Status.ACTIVE, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } }, ...where },
+      data: { recordStatus: Status.DELETED },
     });
   }
 }

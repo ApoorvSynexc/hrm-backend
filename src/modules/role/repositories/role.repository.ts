@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/index.js'
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -17,7 +18,7 @@ export class RoleRepository {
    */
   async findFirstByTenantAndName(tenantId: string | null, name: string, tx?: TX) {
     return this.client(tx).role.findFirst({
-      where: { tenantId, name, status: { not: 'DELETED' } },
+      where: { tenantId, name, status: { not: Status.DELETED } },
     });
   }
 
@@ -48,7 +49,7 @@ export class RoleRepository {
    */
   async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
     return this.client(tx).role.findFirst({
-      where: { id, tenantId, status: { not: 'DELETED' } },
+      where: { id, tenantId, status: { not: Status.DELETED } },
       include: {
         rolePermissions: {
           include: { permission: true },

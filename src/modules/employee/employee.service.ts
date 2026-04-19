@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { EmployeeRepository } from './repositories/employee.repository.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
+import { Status, EmploymentStatus } from '../../../generated/prisma/index.js';
 
 @Injectable()
 export class EmployeeService {
@@ -41,8 +42,8 @@ export class EmployeeService {
       designation: dto.designation,
       hireDate: new Date(dto.hireDate),
       salary: dto.salary ? parseFloat(dto.salary) : null,
-      employmentStatus: 'ACTIVE',
-      status: 'ACTIVE',
+      employmentStatus: EmploymentStatus.ACTIVE,
+      status: Status.ACTIVE,
       passwordHash: '',
     });
   }
@@ -52,7 +53,7 @@ export class EmployeeService {
    */
   async listEmployees(tenantId: string) {
     const result = await this.employeeRepository.findAll(
-      { tenantId, status: { not: 'DELETED' } },
+      { tenantId, status: { not: Status.DELETED } },
       { pagination: false },
     );
     return result.data;
@@ -124,8 +125,8 @@ export class EmployeeService {
     return await this.employeeRepository.update(
       { id: employeeId },
       {
-        status: 'DELETED',
-        employmentStatus: 'TERMINATED',
+        status: Status.DELETED,
+        employmentStatus: EmploymentStatus.TERMINATED,
       },
     );
   }
@@ -137,7 +138,7 @@ export class EmployeeService {
     filters?: { tenantId?: string; status?: string },
     options?: { limit?: number; page?: number },
   ) {
-    const where: any = { status: { not: 'DELETED' } };
+    const where: any = { status: { not: Status.DELETED } };
 
     if (filters?.tenantId) {
       where.tenantId = filters.tenantId;

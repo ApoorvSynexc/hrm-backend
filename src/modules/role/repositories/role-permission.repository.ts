@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/index.js'
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -22,7 +23,7 @@ export class RolePermissionRepository {
         tenantId,
         role: {
           name: roleName,
-          status: { not: 'DELETED' },
+          status: { not: Status.DELETED },
         },
       },
       include: {

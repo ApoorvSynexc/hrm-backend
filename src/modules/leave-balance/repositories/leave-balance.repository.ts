@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/index.js'
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -14,7 +15,7 @@ export class LeaveBalanceRepository {
 
   async find(where: Record<string, any>, tx?: TX) {
     return this.client(tx).leaveBalance.findFirst({
-      where: { user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
+      where: { user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } }, ...where },
       include: { user: true, tenant: true },
     });
   }
@@ -25,8 +26,8 @@ export class LeaveBalanceRepository {
     const skip = (page - 1) * limit;
 
     const finalWhere = where
-      ? { AND: [where, { user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } }] }
-      : { user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } };
+      ? { AND: [where, { user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } }] }
+      : { user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } };
 
     const [data, total] = await Promise.all([
       this.client(tx).leaveBalance.findMany({

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/index.js'
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -22,7 +23,7 @@ export class TenantRepository {
     tx?: TX,
   ) {
     return this.client(tx).tenant.findFirst({
-      where: { status: { not: 'DELETED' }, ...where },
+      where: { status: { not: Status.DELETED }, ...where },
       ...(include && { include }),
     });
   }
@@ -61,8 +62,8 @@ export class TenantRepository {
       : {};
 
     const finalWhere = where
-      ? { AND: [{ status: { not: 'DELETED' } }, where, searchWhere] }
-      : { AND: [{ status: { not: 'DELETED' } }, searchWhere] };
+      ? { AND: [{ status: { not: Status.DELETED } }, where, searchWhere] }
+      : { AND: [{ status: { not: Status.DELETED } }, searchWhere] };
 
     const [tenants, total] = await Promise.all([
       this.client(tx).tenant.findMany({

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/index.js'
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -20,7 +21,7 @@ export class DepartmentRepository {
       where: {
         id,
         tenantId,
-        status: { not: 'DELETED' },
+        status: { not: Status.DELETED },
       },
     });
   }
@@ -33,7 +34,7 @@ export class DepartmentRepository {
       where: {
         tenantId,
         name,
-        status: { not: 'DELETED' },
+        status: { not: Status.DELETED },
       },
     });
   }
@@ -45,7 +46,7 @@ export class DepartmentRepository {
     return this.client(tx).department.findMany({
       where: {
         tenantId,
-        status: { not: 'DELETED' },
+        status: { not: Status.DELETED },
       },
       orderBy: { createdAt: 'desc' },
     });

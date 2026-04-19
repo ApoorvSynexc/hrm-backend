@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
 import type { PrismaClient } from '../../../../generated/prisma/index.js';
+import { Status } from '../../../../generated/prisma/index.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
@@ -22,7 +23,7 @@ export class UserRepository {
     tx?: TX,
   ) {
     return this.client(tx).user.findFirst({
-      where: { status: { not: 'DELETED' }, ...where },
+      where: { status: { not: Status.DELETED }, ...where },
       include: {
         role: true,
         department: true,
@@ -36,7 +37,7 @@ export class UserRepository {
    */
   async findByIdWithRole(id: string, tx?: TX) {
     return this.client(tx).user.findFirst({
-      where: { id, status: { not: 'DELETED' } },
+      where: { id, status: { not: Status.DELETED } },
       include: {
         role: {
           include: {
@@ -86,8 +87,8 @@ export class UserRepository {
       : {};
 
     const finalWhere = where
-      ? { AND: [where, { status: { not: 'DELETED' } }, searchWhere] }
-      : { AND: [{ status: { not: 'DELETED' } }, searchWhere] };
+      ? { AND: [where, { status: { not: Status.DELETED } }, searchWhere] }
+      : { AND: [{ status: { not: Status.DELETED } }, searchWhere] };
 
     const [users, total] = await Promise.all([
       this.client(tx).user.findMany({

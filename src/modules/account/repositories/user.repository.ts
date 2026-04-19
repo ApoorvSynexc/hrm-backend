@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service.js';
-import type { PrismaClient } from '../../../../generated/prisma/index.js';
-import { Status } from '../../../../generated/prisma/index.js';
+import type { PrismaClient } from '../../../../generated/prisma/client.js';
+import { Status } from '../../../../generated/prisma/client.js';
 
 type TX = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 

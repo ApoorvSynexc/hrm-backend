@@ -19,13 +19,16 @@ export class RoleController {
   constructor(private roleService: RoleService) {}
 
   /**
-   * Get all available permissions
-   * GET /permissions
+   * Get permissions assigned to a role
+   * GET /role/permissions?roleId=xxx
    */
   @Get('permissions')
   @Permissions('read:permission')
-  async getPermissions() {
-    const permissions = await this.roleService.getPermissions();
+  async getRolePermissions(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('roleId') roleId: string,
+  ) {
+    const permissions = await this.roleService.getRolePermissions(tenantId, roleId);
     return { message: 'common.fetched', data: permissions };
   }
 

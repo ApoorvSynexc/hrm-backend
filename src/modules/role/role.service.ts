@@ -92,6 +92,12 @@ export class RoleService {
     return await this.permissionRepository.findMany();
   }
 
+  async getRolePermissions(tenantId: string, roleId: string) {
+    const role = await this.getRoleById(tenantId, roleId);
+    const rolePermissions = await this.rolePermissionRepository.findManyByRole(tenantId, roleId);
+    return rolePermissions.map(rp => rp.permission);
+  }
+
   async assignPermission(
     tenantId: string,
     roleId: string,

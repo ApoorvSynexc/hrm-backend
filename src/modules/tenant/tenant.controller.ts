@@ -86,10 +86,10 @@ export class TenantController {
     return { message: 'common.updated', data: config };
   }
 
-  @Delete(':id')
+  @Delete()
   @HttpCode(HttpStatus.OK)
   @Permissions('manage:all')
-  async deleteTenant(@Param('id') tenantId: string) {
+  async deleteTenant(@Query('id') tenantId: string) {
     await this.tenantService.deleteTenant(tenantId);
     return { message: 'common.deleted' };
   }

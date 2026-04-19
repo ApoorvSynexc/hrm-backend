@@ -120,10 +120,10 @@ export class TenantService {
       );
 
       // 3. Fetch global permissions
-      // Exclude: all, user, role, permission (system-only perms that should not be mapped to tenant roles)
+      // Exclude: all, user (system-only perms that should not be mapped to tenant roles)
       const globalPermissions = await this.permissionRepository.findMany(
         {
-          subject: { notIn: ['all', 'user', 'role', 'permission'] },
+          subject: { notIn: ['all', 'user'] },
         },
         tx,
       );
@@ -153,7 +153,14 @@ export class TenantService {
           DEFAULT_ROLE_PERMISSIONS[roleDefinition.name as keyof typeof DEFAULT_ROLE_PERMISSIONS];
 
         if (defaultPermsForRole && Array.isArray(defaultPermsForRole)) {
-          for (const permKey of defaultPermsForRole) {
+          // For non-ADMIN roles, filter out role and permission management
+          const permissionsToAssign = roleDefinition.name === 'ADMIN'
+            ? defaultPermsForRole
+            : defaultPermsForRole.filter(
+                (perm) => !perm.includes(':role') && !perm.includes(':permission')
+              );
+
+          for (const permKey of permissionsToAssign) {
             const permissionId = globalPermissionMap.get(permKey);
 
             if (permissionId) {
@@ -167,7 +174,7 @@ export class TenantService {
                 tx,
               );
             }
-            // Skip system-only permissions that don't exist in globalPermissionMap
+            // Skip permissions that don't exist in globalPermissionMap
           }
         }
       }

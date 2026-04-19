@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { UserRepository } from '../account/repositories/user.repository.js';
 import { EmployeeRepository } from '../employee/repositories/employee.repository.js';
+import { CounterRepository } from '../../common/repositories/counter.repository.js';
 import {
   TenantRepository,
   WorkingHoursRepository,
@@ -29,6 +30,7 @@ export class TenantService {
     private employeeRepository: EmployeeRepository,
     private workingHoursRepository: WorkingHoursRepository,
     private workingDayRepository: WorkingDayRepository,
+    private counterRepository: CounterRepository,
   ) {}
 
   /**
@@ -46,18 +48,31 @@ export class TenantService {
   }
 
   /**
-   * Ensure slug is unique by appending a number if needed
+   * Generate unique tenant slug using counter table
+   * Pattern: base-slug or base-slug-{counter}
+   * Example: "acme", "acme-1", "acme-2", etc.
    */
-  private async ensureUniqueSlug(baseSlug: string): Promise<string> {
-    let slug = baseSlug;
-    let counter = 1;
-
-    while (await this.tenantRepository.find({ slug })) {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
+  private async generateUniqueSlug(
+    baseSlug: string,
+    tenantId: string,
+    tx?: any
+  ): Promise<string> {
+    // First try: check if base slug is available
+    const existingBase = await this.prisma.tenant.findFirst({
+      where: { slug: baseSlug },
+    });
+    if (!existingBase) {
+      return baseSlug;
     }
 
-    return slug;
+    // If base slug taken, use counter to generate unique variant
+    const nextNum = await this.counterRepository.getNextSequence(
+      tenantId,
+      'slug-variant',
+      tx
+    );
+
+    return `${baseSlug}-${nextNum}`;
   }
 
   /**
@@ -80,9 +95,8 @@ export class TenantService {
       );
     }
 
-    // 2. Generate slug from name and ensure uniqueness
+    // 2. Generate base slug from name
     const baseSlug = this.generateSlug(dto.name);
-    const slug = await this.ensureUniqueSlug(baseSlug);
 
     // 3. Determine domain: use provided or extract from admin email
     const domain = dto.domain || this.extractDomain(dto.adminEmail);
@@ -90,9 +104,12 @@ export class TenantService {
       throw new BadRequestException('Could not determine tenant domain');
     }
 
-    // 4. Verify domain doesn't already exist
-    const existingDomain = await this.prisma.tenantDomain.findUnique({
-      where: { domain },
+    // 4. Verify domain doesn't already exist (on active tenants only)
+    const existingDomain = await this.prisma.tenantDomain.findFirst({
+      where: {
+        domain,
+        tenant: { status: { not: 'DELETED' } },
+      },
     });
     if (existingDomain) {
       throw new BadRequestException(
@@ -103,16 +120,25 @@ export class TenantService {
     // Run entire operation in a transaction
     return await this.prisma.$transaction(
       async (tx) => {
-        // 1. Create the tenant with domain
+        // 1. Create the tenant WITHOUT slug first
         const newTenant = await tx.tenant.create({
           data: {
             name: dto.name,
-            slug,
             domains: {
               create: [{ domain }],
             },
           },
         });
+
+        // 2. Generate unique slug using counter with tenant ID
+        const uniqueSlug = await this.generateUniqueSlug(baseSlug, newTenant.id, tx);
+
+        // 3. Update tenant with the unique slug
+        await tx.tenant.update({
+          where: { id: newTenant.id },
+          data: { slug: uniqueSlug },
+        });
+        newTenant.slug = uniqueSlug;
 
       // 2. Get tenant roles from constants (exclude SUPER_ADMIN which is global-only)
       const tenantRolesToCreate = DEFAULT_ROLES.filter(

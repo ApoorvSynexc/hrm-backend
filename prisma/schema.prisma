@@ -95,7 +95,7 @@ enum PermissionSubject {
 model Tenant {
   id                        String                     @id @default(cuid())
   name                      String
-  slug                      String                     @unique
+  slug                      String?                    @unique
   logo                      String?                    // URL to logo image
   status                    Status                     @default(ACTIVE)
   createdAt                 DateTime                   @default(now())

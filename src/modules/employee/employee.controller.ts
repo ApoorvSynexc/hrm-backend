@@ -8,7 +8,6 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
@@ -36,24 +35,30 @@ export class EmployeeController {
   }
 
   /**
-   * List all employees or get a specific employee
-   * GET /employees (list all)
-   * GET /employees?id=xxx (get single)
+   * List all employees
+   * GET /employees
    */
-  @Get()
+  @Get("list")
   @Permissions('read:employee')
   async list(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id?: string,
   ) {
-    // If id is provided, return single employee; otherwise list all
-    if (id) {
-      const employee = await this.employeeService.getEmployeeById(tenantId, id);
-      return { message: 'common.fetched', data: employee };
-    }
-
     const employees = await this.employeeService.listEmployees(tenantId);
     return { message: 'common.fetched', data: employees };
+  }
+
+  /**
+   * Get a specific employee by ID
+   * GET /employees/:id
+   */
+  @Get()
+  @Permissions('read:employee')
+  async getById(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
+  ) {
+    const employee = await this.employeeService.getEmployeeById(tenantId, id);
+    return { message: 'common.fetched', data: employee };
   }
 
   /**

@@ -14,7 +14,7 @@ import { CreateRoleDto, UpdateRoleDto, AssignPermissionDto } from './dto/index.j
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
-@Controller('roles')
+@Controller('role')
 export class RoleController {
   constructor(private roleService: RoleService) {}
 
@@ -45,23 +45,30 @@ export class RoleController {
   }
 
   /**
-   * Get all roles or a specific role
-   * GET /roles (list all)
-   * GET /roles?id=xxx (get single role)
+   * Get all roles
+   * GET /roles
    */
-  @Get()
+  @Get("list")
   @Permissions('read:role')
   async list(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id?: string,
   ) {
-    if (id) {
-      const role = await this.roleService.getRoleById(tenantId, id);
-      return { message: 'common.fetched', data: role };
-    }
-
     const roles = await this.roleService.getRoles(tenantId);
     return { message: 'common.fetched', data: roles };
+  }
+
+  /**
+   * Get a specific role by ID
+   * GET /roles/single?id=xxx
+   */
+  @Get()
+  @Permissions('read:role')
+  async getById(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
+  ) {
+    const role = await this.roleService.getRoleById(tenantId, id);
+    return { message: 'common.fetched', data: role };
   }
 
   /**

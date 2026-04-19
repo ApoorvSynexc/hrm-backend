@@ -2,19 +2,19 @@ import {
   Controller,
   Post,
   Get,
-  Patch,
   Delete,
   Body,
   Query,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { DepartmentService } from './department.service.js';
 import { CreateDepartmentDto, UpdateDepartmentDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
-@Controller('departments')
+@Controller('department')
 export class DepartmentController {
   constructor(private departmentService: DepartmentService) {}
 
@@ -41,7 +41,7 @@ export class DepartmentController {
    * GET /departments (list all)
    * GET /departments?id=xxx (get single)
    */
-  @Get()
+  @Get("list")
   @Permissions('read:department')
   async list(
     @CurrentUser('tenantId') tenantId: string,
@@ -64,7 +64,7 @@ export class DepartmentController {
    * Update a department
    * PATCH /departments?id=xxx
    */
-  @Patch()
+  @Put()
   @HttpCode(HttpStatus.OK)
   @Permissions('update:department')
   async update(

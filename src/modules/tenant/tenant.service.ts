@@ -241,30 +241,8 @@ export class TenantService {
         email: createdUser.email,
       };
 
-      // 7. Fetch and return complete tenant with domains
-      const completeTenant = await tx.tenant.findUnique({
-        where: { id: newTenant.id },
-        include: {
-          domains: {
-            select: {
-              id: true,
-              domain: true,
-              createdAt: true,
-            },
-          },
-          roles: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              isSystem: true,
-            },
-          },
-        },
-      });
-
       return {
-        ...completeTenant,
+        tenantId: newTenant.id,
         adminUser,
       };
       },

@@ -265,7 +265,7 @@ model Department {
   tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users       User[]
 
-  @@unique([tenantId, name])
+  @@unique([tenantId, name, status])
   @@unique([id, tenantId])
   @@index([tenantId])
 }

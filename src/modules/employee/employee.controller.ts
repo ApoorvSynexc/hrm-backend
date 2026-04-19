@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Query,
+  Param,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -38,7 +39,7 @@ export class EmployeeController {
    * List all employees
    * GET /employees
    */
-  @Get("list")
+  @Get()
   @Permissions('read:employee')
   async list(
     @CurrentUser('tenantId') tenantId: string,
@@ -51,11 +52,11 @@ export class EmployeeController {
    * Get a specific employee by ID
    * GET /employees/:id
    */
-  @Get()
+  @Get(':id')
   @Permissions('read:employee')
   async getById(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id: string,
+    @Param('id') id: string,
   ) {
     const employee = await this.employeeService.getEmployeeById(tenantId, id);
     return { message: 'common.fetched', data: employee };
@@ -63,14 +64,14 @@ export class EmployeeController {
 
   /**
    * Update an employee
-   * PATCH /employees?id=xxx
+   * PATCH /employees/:id
    */
-  @Patch()
+  @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @Permissions('update:employee')
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateEmployeeDto,
   ) {
     const employee = await this.employeeService.updateEmployee(tenantId, id, dto);
@@ -79,14 +80,14 @@ export class EmployeeController {
 
   /**
    * Delete an employee (soft delete)
-   * DELETE /employees?id=xxx
+   * DELETE /employees/:id
    */
-  @Delete()
+  @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @Permissions('delete:employee')
   async delete(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id: string,
+    @Param('id') id: string,
   ) {
     const employee = await this.employeeService.deleteEmployee(tenantId, id);
     return { message: 'common.deleted', data: employee };
@@ -113,7 +114,7 @@ export class EmployeeController {
       limit: limit ? Number(limit) : 10,
       page: page ? Number(page) : 1,
     });
-    
+
     return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 }

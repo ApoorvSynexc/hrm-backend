@@ -39,6 +39,7 @@ export class EmployeeService {
       phone: dto.phone,
       employeeCode,
       departmentId: dto.departmentId,
+      roleId: dto.roleId,
       designation: dto.designation,
       hireDate: new Date(dto.hireDate),
       salary: dto.salary ? parseFloat(dto.salary) : null,
@@ -108,6 +109,7 @@ export class EmployeeService {
     if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.designation !== undefined) updateData.designation = dto.designation;
     if (dto.departmentId !== undefined) updateData.departmentId = dto.departmentId;
+    if (dto.roleId !== undefined) updateData.roleId = dto.roleId;
     if (dto.hireDate !== undefined) updateData.hireDate = new Date(dto.hireDate);
     if (dto.salary !== undefined) updateData.salary = parseFloat(dto.salary);
 

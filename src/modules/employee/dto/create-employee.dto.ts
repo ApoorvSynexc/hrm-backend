@@ -30,6 +30,10 @@ export class CreateEmployeeDto {
   departmentId: string;
 
   @IsString()
+  @IsOptional()
+  roleId?: string;
+
+  @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   designation: string;

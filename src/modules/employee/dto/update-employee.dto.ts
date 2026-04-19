@@ -29,6 +29,10 @@ export class UpdateEmployeeDto {
   @IsOptional()
   departmentId?: string;
 
+  @IsString()
+  @IsOptional()
+  roleId?: string;
+
   @IsDateString()
   @IsOptional()
   hireDate?: string;

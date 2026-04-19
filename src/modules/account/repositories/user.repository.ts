@@ -13,7 +13,7 @@ export class UserRepository {
   }
 
   /**
-   * Find a single user by flexible where clause
+   * Find a single user by flexible where clause (excludes deleted)
    * Example: find({ id: '123' }, include?) or find({ email: 'test@example.com' }, include?)
    */
   async find(
@@ -22,7 +22,7 @@ export class UserRepository {
     tx?: TX,
   ) {
     return this.client(tx).user.findFirst({
-      where,
+      where: { status: { not: 'DELETED' }, ...where },
       include: {
         role: true,
         department: true,
@@ -32,11 +32,11 @@ export class UserRepository {
   }
 
   /**
-   * Find a user by ID with role and permissions (includes all relationships)
+   * Find a user by ID with role and permissions (includes all relationships, excludes deleted)
    */
   async findByIdWithRole(id: string, tx?: TX) {
-    return this.client(tx).user.findUnique({
-      where: { id },
+    return this.client(tx).user.findFirst({
+      where: { id, status: { not: 'DELETED' } },
       include: {
         role: {
           include: {
@@ -51,7 +51,7 @@ export class UserRepository {
   }
 
   /**
-   * Find multiple users with optional pagination, filters, and search
+   * Find multiple users with optional pagination, filters, and search (excludes deleted)
    */
   async findAll(
     where?: Record<string, any>,
@@ -86,12 +86,12 @@ export class UserRepository {
       : {};
 
     const finalWhere = where
-      ? { AND: [where, searchWhere] }
-      : searchWhere;
+      ? { AND: [where, { status: { not: 'DELETED' } }, searchWhere] }
+      : { AND: [{ status: { not: 'DELETED' } }, searchWhere] };
 
     const [users, total] = await Promise.all([
       this.client(tx).user.findMany({
-        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        where: finalWhere,
         include: {
           role: true,
           department: true,
@@ -103,7 +103,7 @@ export class UserRepository {
         orderBy: { createdAt: 'desc' },
       }),
       this.client(tx).user.count({
-        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        where: finalWhere,
       }),
     ]);
 

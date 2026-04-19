@@ -14,14 +14,14 @@ export class AttendanceRegularizationRepository {
 
   async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
     return this.client(tx).attendanceRegularization.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } },
       include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
     });
   }
 
   async findManyByTenant(tenantId: string, tx?: TX) {
     return this.client(tx).attendanceRegularization.findMany({
-      where: { tenantId },
+      where: { tenantId, user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } },
       include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -29,14 +29,14 @@ export class AttendanceRegularizationRepository {
 
   async findManyByUser(tenantId: string, userId: string, tx?: TX) {
     return this.client(tx).attendanceRegularization.findMany({
-      where: { tenantId, userId },
+      where: { tenantId, userId, user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findByUserAndDate(tenantId: string, userId: string, date: Date, tx?: TX) {
     return this.client(tx).attendanceRegularization.findFirst({
-      where: { tenantId, userId, date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) }, status: 'PENDING' },
+      where: { tenantId, userId, date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) }, status: 'PENDING', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } },
     });
   }
 

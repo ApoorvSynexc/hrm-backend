@@ -14,7 +14,7 @@ export class LeaveRepository {
 
   async find(where: Record<string, any>, include?: Record<string, any>, tx?: TX) {
     return this.client(tx).leave.findFirst({
-      where: { recordStatus: 'ACTIVE', ...where },
+      where: { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
       include: {
         user: true,
         tenant: true,
@@ -28,9 +28,13 @@ export class LeaveRepository {
     const page = options?.page || 1;
     const skip = (page - 1) * limit;
 
+    const finalWhere = where
+      ? { AND: [{ recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } }, where] }
+      : { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } };
+
     const [data, total] = await Promise.all([
       this.client(tx).leave.findMany({
-        where: { recordStatus: 'ACTIVE', ...where },
+        where: finalWhere,
         include: {
           user: true,
           tenant: true,
@@ -41,7 +45,7 @@ export class LeaveRepository {
         orderBy: { createdAt: 'desc' },
       }),
       this.client(tx).leave.count({
-        where: { recordStatus: 'ACTIVE', ...where },
+        where: finalWhere,
       }),
     ]);
 
@@ -68,14 +72,14 @@ export class LeaveRepository {
 
   async update(where: Record<string, any>, data: any, tx?: TX) {
     return this.client(tx).leave.updateMany({
-      where: { recordStatus: 'ACTIVE', ...where },
+      where: { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
       data,
     });
   }
 
   async delete(where: Record<string, any>, tx?: TX) {
     return this.client(tx).leave.updateMany({
-      where: { recordStatus: 'ACTIVE', ...where },
+      where: { recordStatus: 'ACTIVE', user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
       data: { recordStatus: 'DELETED' },
     });
   }

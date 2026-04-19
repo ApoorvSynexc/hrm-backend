@@ -368,4 +368,99 @@ export class TenantService {
   }) {
     return await this.tenantRepository.findAll(undefined, options);
   }
+
+  async deleteTenant(tenantId: string) {
+    const tenant = await this.tenantRepository.find({ id: tenantId });
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Soft delete all users
+      await tx.user.updateMany({
+        where: { tenantId },
+        data: { status: 'DELETED' },
+      });
+
+      // Soft delete all roles
+      await tx.role.updateMany({
+        where: { tenantId },
+        data: { status: 'DELETED' },
+      });
+
+      // Soft delete all departments
+      await tx.department.updateMany({
+        where: { tenantId },
+        data: { status: 'DELETED' },
+      });
+
+      // Soft delete all leaves
+      await tx.leave.updateMany({
+        where: { tenantId },
+        data: { recordStatus: 'DELETED' },
+      });
+
+      // Soft delete all payrolls
+      await tx.payroll.updateMany({
+        where: { tenantId },
+        data: { recordStatus: 'DELETED' },
+      });
+
+      // Delete refresh tokens
+      await tx.refreshToken.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete role permissions
+      await tx.rolePermission.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete tenant domains
+      await tx.tenantDomain.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete working hours
+      await tx.workingHours.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete working days
+      await tx.workingDay.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete holidays
+      await tx.holiday.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete leave balances
+      await tx.leaveBalance.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete counters
+      await tx.counter.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete attendances
+      await tx.attendance.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete attendance regularizations
+      await tx.attendanceRegularization.deleteMany({
+        where: { tenantId },
+      });
+
+      // Soft delete the tenant itself
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: { status: 'DELETED' },
+      });
+    });
+  }
 }

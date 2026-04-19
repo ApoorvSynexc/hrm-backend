@@ -14,14 +14,14 @@ export class WorkingDayRepository {
 
   async findByTenantId(tenantId: string, tx?: TX) {
     return this.client(tx).workingDay.findMany({
-      where: { tenantId },
+      where: { tenantId, tenant: { status: { not: 'DELETED' } } },
       orderBy: { day: 'asc' },
     });
   }
 
   async findByTenantAndDay(tenantId: string, day: string, tx?: TX) {
-    return this.client(tx).workingDay.findUnique({
-      where: { tenantId_day: { tenantId, day } },
+    return this.client(tx).workingDay.findFirst({
+      where: { tenantId, day, tenant: { status: { not: 'DELETED' } } },
     });
   }
 

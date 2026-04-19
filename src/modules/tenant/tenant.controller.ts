@@ -3,8 +3,10 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Query,
+  Param,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -82,5 +84,13 @@ export class TenantController {
   ) {
     const config = await this.tenantService.configureWorkingDays(tenantId, dto);
     return { message: 'common.updated', data: config };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('manage:all')
+  async deleteTenant(@Param('id') tenantId: string) {
+    await this.tenantService.deleteTenant(tenantId);
+    return { message: 'common.deleted' };
   }
 }

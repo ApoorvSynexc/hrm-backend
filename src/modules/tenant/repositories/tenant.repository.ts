@@ -13,7 +13,7 @@ export class TenantRepository {
   }
 
   /**
-   * Find a single tenant by flexible where clause
+   * Find a single tenant by flexible where clause (excludes deleted)
    * Example: find({ id: '123' }) or find({ slug: 'acme' })
    */
   async find(
@@ -21,14 +21,14 @@ export class TenantRepository {
     include?: Record<string, any>,
     tx?: TX,
   ) {
-    return this.client(tx).tenant.findUnique({
-      where: where as any,
+    return this.client(tx).tenant.findFirst({
+      where: { status: { not: 'DELETED' }, ...where },
       ...(include && { include }),
     });
   }
 
   /**
-   * Find multiple tenants with optional pagination and search
+   * Find multiple tenants with optional pagination and search (excludes deleted)
    */
   async findAll(
     where?: Record<string, any>,
@@ -60,11 +60,13 @@ export class TenantRepository {
         }
       : {};
 
-    const finalWhere = where ? { AND: [where, searchWhere] } : searchWhere;
+    const finalWhere = where
+      ? { AND: [{ status: { not: 'DELETED' } }, where, searchWhere] }
+      : { AND: [{ status: { not: 'DELETED' } }, searchWhere] };
 
     const [tenants, total] = await Promise.all([
       this.client(tx).tenant.findMany({
-        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        where: finalWhere,
         include: {
           domains: {
             select: {
@@ -80,7 +82,7 @@ export class TenantRepository {
         orderBy: { createdAt: 'desc' },
       }),
       this.client(tx).tenant.count({
-        where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        where: finalWhere,
       }),
     ]);
 

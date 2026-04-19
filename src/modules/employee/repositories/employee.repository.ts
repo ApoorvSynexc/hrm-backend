@@ -17,7 +17,7 @@ export class EmployeeRepository {
   }
 
   /**
-   * Find a single employee by flexible where clause
+   * Find a single employee by flexible where clause (excludes deleted)
    * Example: find({ id: '123', tenantId: 'abc' }) or find({ employeeCode: 'EMP001' })
    */
   async find(
@@ -26,7 +26,7 @@ export class EmployeeRepository {
     tx?: TX,
   ) {
     return this.client(tx).user.findFirst({
-      where: { employeeCode: { not: null }, ...where },
+      where: { employeeCode: { not: null }, status: { not: 'DELETED' }, ...where },
       include: {
         role: true,
         department: true,
@@ -71,8 +71,8 @@ export class EmployeeRepository {
       : {};
 
     const finalWhere = where
-      ? { AND: [{ employeeCode: { not: null }, ...where }, searchWhere] }
-      : { AND: [{ employeeCode: { not: null } }, searchWhere] };
+      ? { AND: [{ employeeCode: { not: null }, status: { not: 'DELETED' }, ...where }, searchWhere] }
+      : { AND: [{ employeeCode: { not: null }, status: { not: 'DELETED' } }, searchWhere] };
 
     const [employees, total] = await Promise.all([
       this.client(tx).user.findMany({

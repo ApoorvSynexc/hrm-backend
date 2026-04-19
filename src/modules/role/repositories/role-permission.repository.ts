@@ -13,7 +13,7 @@ export class RolePermissionRepository {
   }
 
   /**
-   * Find role permissions with included permission details
+   * Find role permissions with included permission details (excludes deleted roles)
    * Used by PermissionsGuard to check user permissions
    */
   async findManyWithPermission(tenantId: string | null, roleName: string, tx?: TX) {
@@ -22,6 +22,7 @@ export class RolePermissionRepository {
         tenantId,
         role: {
           name: roleName,
+          status: { not: 'DELETED' },
         },
       },
       include: {

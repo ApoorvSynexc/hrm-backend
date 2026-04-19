@@ -13,23 +13,27 @@ export class DepartmentRepository {
   }
 
   /**
-   * Find a department by tenant and ID
+   * Find a department by tenant and ID (excludes deleted)
    */
   async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
-    return this.client(tx).department.findUnique({
+    return this.client(tx).department.findFirst({
       where: {
-        id_tenantId: { id, tenantId },
+        id,
+        tenantId,
+        status: { not: 'DELETED' },
       },
     });
   }
 
   /**
-   * Find a department by tenant and name
+   * Find a department by tenant and name (excludes deleted)
    */
   async findByTenantAndName(tenantId: string, name: string, tx?: TX) {
-    return this.client(tx).department.findUnique({
+    return this.client(tx).department.findFirst({
       where: {
-        tenantId_name: { tenantId, name },
+        tenantId,
+        name,
+        status: { not: 'DELETED' },
       },
     });
   }

@@ -14,7 +14,7 @@ export class HolidayRepository {
 
   async find(where: Record<string, any>, tx?: TX) {
     return this.client(tx).holiday.findFirst({
-      where,
+      where: { tenant: { status: { not: 'DELETED' } }, ...where },
       include: { tenant: true },
     });
   }
@@ -24,15 +24,19 @@ export class HolidayRepository {
     const page = options?.page || 1;
     const skip = (page - 1) * limit;
 
+    const finalWhere = where
+      ? { AND: [where, { tenant: { status: { not: 'DELETED' } } }] }
+      : { tenant: { status: { not: 'DELETED' } } };
+
     const [data, total] = await Promise.all([
       this.client(tx).holiday.findMany({
-        where,
+        where: finalWhere,
         include: { tenant: true },
         skip,
         take: limit,
         orderBy: { date: 'asc' },
       }),
-      this.client(tx).holiday.count({ where }),
+      this.client(tx).holiday.count({ where: finalWhere }),
     ]);
 
     return {

@@ -14,7 +14,7 @@ export class LeaveBalanceRepository {
 
   async find(where: Record<string, any>, tx?: TX) {
     return this.client(tx).leaveBalance.findFirst({
-      where,
+      where: { user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } }, ...where },
       include: { user: true, tenant: true },
     });
   }
@@ -24,15 +24,19 @@ export class LeaveBalanceRepository {
     const page = options?.page || 1;
     const skip = (page - 1) * limit;
 
+    const finalWhere = where
+      ? { AND: [where, { user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } }] }
+      : { user: { status: { not: 'DELETED' } }, tenant: { status: { not: 'DELETED' } } };
+
     const [data, total] = await Promise.all([
       this.client(tx).leaveBalance.findMany({
-        where,
+        where: finalWhere,
         include: { user: true, tenant: true },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.client(tx).leaveBalance.count({ where }),
+      this.client(tx).leaveBalance.count({ where: finalWhere }),
     ]);
 
     return {

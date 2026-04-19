@@ -13,8 +13,8 @@ export class WorkingHoursRepository {
   }
 
   async findByTenantId(tenantId: string, tx?: TX) {
-    return this.client(tx).workingHours.findUnique({
-      where: { tenantId },
+    return this.client(tx).workingHours.findFirst({
+      where: { tenantId, tenant: { status: { not: 'DELETED' } } },
     });
   }
 

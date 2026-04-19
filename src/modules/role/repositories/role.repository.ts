@@ -13,11 +13,11 @@ export class RoleRepository {
   }
 
   /**
-   * Find a role by tenant and name
+   * Find a role by tenant and name (excludes deleted)
    */
   async findFirstByTenantAndName(tenantId: string | null, name: string, tx?: TX) {
     return this.client(tx).role.findFirst({
-      where: { tenantId, name },
+      where: { tenantId, name, status: { not: 'DELETED' } },
     });
   }
 
@@ -44,11 +44,11 @@ export class RoleRepository {
   }
 
   /**
-   * Find a role by tenant and ID with permissions
+   * Find a role by tenant and ID with permissions (excludes deleted)
    */
   async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
     return this.client(tx).role.findFirst({
-      where: { id, tenantId },
+      where: { id, tenantId, status: { not: 'DELETED' } },
       include: {
         rolePermissions: {
           include: { permission: true },

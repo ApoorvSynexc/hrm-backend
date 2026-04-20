@@ -46,7 +46,7 @@ export class WorkingScheduleService {
     if (workingHoursPerDay !== undefined) updateData.workingHoursPerDay = workingHoursPerDay;
     if (status) updateData.status = status;
 
-    return await this.workingScheduleRepository.updateById(id, updateData);
+    return await this.workingScheduleRepository.update({ id, tenantId }, updateData);
   }
 
   async list(tenantId: string, name?: string) {

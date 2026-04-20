@@ -54,19 +54,7 @@ export class WorkingScheduleRepository {
     tx?: TX,
   ) {
     return this.client(tx).workingSchedule.update({
-      where: {
-        tenantId_name: {
-          tenantId: where.tenantId,
-          name: where.name,
-        },
-      },
-      data: data as any,
-    });
-  }
-
-  async updateById(id: string, data: Record<string, any>, tx?: TX) {
-    return this.client(tx).workingSchedule.update({
-      where: { id },
+      where: where as any,
       data: data as any,
     });
   }
@@ -89,12 +77,8 @@ export class WorkingScheduleRepository {
   }
 
   async delete(where: Record<string, any>, tx?: TX) {
-    return this.client(tx).workingSchedule.deleteMany({ where });
-  }
-
-  async deleteById(id: string, tx?: TX) {
     return this.client(tx).workingSchedule.delete({
-      where: { id },
+      where: where as any,
     });
   }
 }

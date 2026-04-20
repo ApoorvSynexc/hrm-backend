@@ -16,7 +16,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
 @Controller('department')
 export class DepartmentController {
-  constructor(private departmentService: DepartmentService) {}
+  constructor(private departmentService: DepartmentService) { }
 
   /**
    * Create a new department
@@ -37,9 +37,8 @@ export class DepartmentController {
   }
 
   /**
-   * Get all departments or a specific department
-   * GET /departments (list all)
-   * GET /departments?id=xxx (get single)
+   * Get all departments
+   * GET /department/list (list all)
    */
   @Get("list")
   @Permissions('read:department')
@@ -58,6 +57,22 @@ export class DepartmentController {
 
     const departments = await this.departmentService.getDepartments(tenantId);
     return { message: 'common.fetched', data: departments };
+  }
+
+  /**
+   * GET /department?id=xxx (get single)
+   */
+  @Get()
+  @Permissions('read:department')
+  async department(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
+  ) {
+    const department = await this.departmentService.getDepartmentById(
+      tenantId,
+      id,
+    );
+    return { message: 'common.fetched', data: department };
   }
 
   /**

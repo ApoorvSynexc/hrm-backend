@@ -7,8 +7,11 @@ export class DesignationService {
   constructor(private designationRepository: DesignationRepository) {}
 
   async createDesignation(tenantId: string, dto: CreateDesignationDto) {
-    // Check if designation name already exists
-    const existingDesignation = await this.designationRepository.findByName(dto.name);
+    // Check if designation name already exists for this tenant
+    const existingDesignation = await this.designationRepository.findByTenantAndName(
+      tenantId,
+      dto.name,
+    );
 
     if (existingDesignation) {
       throw new BadRequestException(
@@ -17,17 +20,21 @@ export class DesignationService {
     }
 
     return await this.designationRepository.create({
+      tenantId,
       name: dto.name,
       description: dto.description,
     });
   }
 
   async getDesignations(tenantId: string) {
-    return await this.designationRepository.findMany();
+    return await this.designationRepository.findManyByTenant(tenantId);
   }
 
   async getDesignationById(tenantId: string, id: string) {
-    const designation = await this.designationRepository.findById(id);
+    const designation = await this.designationRepository.findByTenantAndId(
+      tenantId,
+      id,
+    );
 
     if (!designation) {
       throw new NotFoundException('Designation not found');
@@ -45,7 +52,10 @@ export class DesignationService {
 
     // Check name uniqueness if name is being changed
     if (dto.name && dto.name !== designation.name) {
-      const existingDesignation = await this.designationRepository.findByName(dto.name);
+      const existingDesignation = await this.designationRepository.findByTenantAndName(
+        tenantId,
+        dto.name,
+      );
 
       if (existingDesignation) {
         throw new BadRequestException(
@@ -57,6 +67,7 @@ export class DesignationService {
     return await this.designationRepository.update(id, {
       name: dto.name,
       description: dto.description,
+      status: dto.status,
     });
   }
 

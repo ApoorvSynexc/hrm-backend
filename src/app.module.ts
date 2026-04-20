@@ -14,6 +14,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module.js';
 import { LeaveModule } from './modules/leave/leave.module.js';
 import { HolidayModule } from './modules/holiday/holiday.module.js';
 import { LeaveBalanceModule } from './modules/leave-balance/leave-balance.module.js';
+import { DesignationModule } from './modules/designation/designation.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { LeaveBalanceModule } from './modules/leave-balance/leave-balance.module
     LeaveModule,
     HolidayModule,
     LeaveBalanceModule,
+    DesignationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

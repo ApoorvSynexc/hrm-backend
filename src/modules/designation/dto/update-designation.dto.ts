@@ -1,4 +1,5 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MaxLength, IsEnum } from 'class-validator';
+import { Status } from '../../../../generated/prisma/client.js';
 
 export class UpdateDesignationDto {
   @IsString()
@@ -10,4 +11,8 @@ export class UpdateDesignationDto {
   @IsOptional()
   @MaxLength(255)
   description?: string;
+
+  @IsEnum(Status)
+  @IsOptional()
+  status?: Status;
 }

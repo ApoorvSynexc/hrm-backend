@@ -14,23 +14,25 @@ export class DesignationRepository {
   }
 
   /**
-   * Find a designation by ID (excludes deleted)
+   * Find a designation by tenant and ID (excludes deleted)
    */
-  async findById(id: string, tx?: TX) {
+  async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
     return this.client(tx).designation.findFirst({
       where: {
         id,
+        tenantId,
         status: { not: Status.DELETED },
       },
     });
   }
 
   /**
-   * Find a designation by name (excludes deleted)
+   * Find a designation by tenant and name (excludes deleted)
    */
-  async findByName(name: string, tx?: TX) {
+  async findByTenantAndName(tenantId: string, name: string, tx?: TX) {
     return this.client(tx).designation.findFirst({
       where: {
+        tenantId,
         name,
         status: { not: Status.DELETED },
       },
@@ -38,11 +40,12 @@ export class DesignationRepository {
   }
 
   /**
-   * Find all designations (excluding deleted)
+   * Find all designations for a tenant (excluding deleted)
    */
-  async findMany(tx?: TX) {
+  async findManyByTenant(tenantId: string, tx?: TX) {
     return this.client(tx).designation.findMany({
       where: {
+        tenantId,
         status: { not: Status.DELETED },
       },
       orderBy: { createdAt: 'desc' },

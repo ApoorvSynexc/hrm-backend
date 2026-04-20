@@ -99,6 +99,7 @@ model Tenant {
   name                      String
   slug                      String?                    @unique
   logo                      String? // URL to logo image
+  timezone                  String                     @default("UTC") // e.g., "Asia/Kolkata", "America/New_York"
   status                    Status                     @default(ACTIVE)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
@@ -120,17 +121,19 @@ model Tenant {
 }
 
 model WorkingSchedule {
-  id                 String   @id @default(cuid())
-  tenantId           String
-  name               String // e.g., "Standard", "Summer Schedule"
-  day                String // "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"
-  isWorking          Boolean  @default(true) // true = working day, false = off (holiday, weekend)
-  workingHoursPerDay Int      @default(480) // minutes: 480 = 8 hours, 420 = 7 hours, etc (only applies when isWorking=true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  tenantId         String
+  name             String // e.g., "Standard", "Summer Schedule"
+  workingDays      String[] // e.g., ["MON", "TUE", "WED", "THU", "FRI"]
+  startTime        String   // e.g., "09:00" (HH:mm format)
+  endTime          String   // e.g., "17:00" (HH:mm format)
+  breakDuration    Int      @default(0) // hours
+  workingHoursPerDay Int    @default(480) // minutes: 480 = 8 hours, 420 = 7 hours, etc
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, name, day])
+  @@unique([tenantId, name])
   @@index([tenantId])
   @@index([tenantId, name])
 }

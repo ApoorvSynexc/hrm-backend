@@ -14,7 +14,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator.js';
 import { ConfigureWorkingHoursDto } from './dto/index.js';
 import { WorkingScheduleService } from './working-schedule.service.js';
 
-@Controller('working-schedule')
+@Controller('work-schedule')
 export class WorkingScheduleController {
   constructor(private workingScheduleService: WorkingScheduleService) {}
 
@@ -58,6 +58,11 @@ export class WorkingScheduleController {
     @CurrentUser('tenantId') tenantId: string,
     @Query('name') name: string = 'Standard',
   ) {
+
+    if(!tenantId) {
+      return { message: 'Tenant ID is required', data: null };
+    }
+
     const config = await this.workingScheduleService.getWorkingSchedule(
       tenantId,
       name,

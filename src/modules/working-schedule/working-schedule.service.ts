@@ -24,23 +24,33 @@ export class WorkingScheduleService {
       throw new BadRequestException('Tenant not found');
     }
 
-    this.validateWorkingDays(dto.workingDays);
+    if (dto.workingDays) {
+      this.validateWorkingDays(dto.workingDays);
+    }
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.workingScheduleRepository.delete({ tenantId, name }, tx);
-
-      const scheduleData = VALID_DAYS.map((day) => ({
-        tenantId,
-        name,
-        day,
-        isWorking: dto.workingDays.includes(day),
-        workingHoursPerDay: dto.workingHoursPerDay || 480,
-      }));
-
-      await this.workingScheduleRepository.createMany(scheduleData, tx);
+    const schedule = await this.workingScheduleRepository.findOne({
+      tenantId,
+      name,
     });
 
-    return await this.getWorkingSchedule(tenantId, name);
+    const scheduleData = {
+      tenantId,
+      name,
+      workingDays: dto.workingDays || schedule?.workingDays || ['MON', 'TUE', 'WED', 'THU', 'FRI'],
+      startTime: dto.startTime || schedule?.startTime || '09:00',
+      endTime: dto.endTime || schedule?.endTime || '17:00',
+      breakDuration: dto.breakDuration ?? (schedule?.breakDuration || 1),
+      workingHoursPerDay: dto.workingHoursPerDay ?? schedule?.workingHoursPerDay ?? 480,
+    };
+
+    if (schedule) {
+      return await this.workingScheduleRepository.update(
+        { tenantId, name },
+        scheduleData,
+      );
+    }
+
+    return await this.workingScheduleRepository.create(scheduleData);
   }
 
   async getWorkingSchedules(tenantId: string) {
@@ -48,9 +58,12 @@ export class WorkingScheduleService {
   }
 
   async getWorkingSchedule(tenantId: string, name: string = 'Standard') {
-    const schedule = await this.workingScheduleRepository.find({ tenantId, name });
+    const schedule = await this.workingScheduleRepository.findOne({
+      tenantId,
+      name,
+    });
 
-    if (!schedule.length) {
+    if (!schedule) {
       throw new NotFoundException('Working schedule not found');
     }
 
@@ -59,12 +72,15 @@ export class WorkingScheduleService {
 
   async deleteWorkingSchedule(tenantId: string, name: string = 'Standard') {
     await this.getWorkingSchedule(tenantId, name);
-
     await this.workingScheduleRepository.delete({ tenantId, name });
     return { name };
   }
 
   private validateWorkingDays(workingDays: string[]) {
+    if (!Array.isArray(workingDays) || workingDays.length === 0) {
+      throw new BadRequestException('workingDays must be a non-empty array');
+    }
+
     for (const day of workingDays) {
       if (!VALID_DAYS.includes(day)) {
         throw new BadRequestException(

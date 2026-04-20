@@ -15,22 +15,43 @@ export class WorkingScheduleRepository {
     return tx ?? this.prisma;
   }
 
+  async findOne(where: Record<string, any>, tx?: TX) {
+    return this.client(tx).workingSchedule.findUnique({
+      where: where as any,
+    });
+  }
+
   async find(where: Record<string, any>, tx?: TX) {
     return this.client(tx).workingSchedule.findMany({
       where,
-      orderBy: { day: 'asc' },
+      orderBy: { name: 'asc' },
     });
   }
 
   async findAll(where?: Record<string, any>, tx?: TX) {
     return this.client(tx).workingSchedule.findMany({
       where,
-      orderBy: [{ name: 'asc' }, { day: 'asc' }],
+      orderBy: { name: 'asc' },
     });
+  }
+
+  async create(data: Record<string, any>, tx?: TX) {
+    return this.client(tx).workingSchedule.create({ data: data as any });
   }
 
   async createMany(data: any[], tx?: TX) {
     return this.client(tx).workingSchedule.createMany({ data });
+  }
+
+  async update(
+    where: Record<string, any>,
+    data: Record<string, any>,
+    tx?: TX,
+  ) {
+    return this.client(tx).workingSchedule.update({
+      where: where as any,
+      data: data as any,
+    });
   }
 
   async delete(where: Record<string, any>, tx?: TX) {

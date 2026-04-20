@@ -14,7 +14,7 @@ export class WorkingScheduleService {
 
   async create(tenantId: string, dto: ConfigureWorkingHoursDto) {
     await this.validateTenant(tenantId);
-    const { name, workingDays = [], startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
+    const { name = 'Standard', workingDays = [], startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
     this.validateWorkingDays(workingDays || []);
 
     return await this.workingScheduleRepository.create({
@@ -70,7 +70,7 @@ export class WorkingScheduleService {
   }
 
   async delete(tenantId: string, id: string) {
-    await this.workingScheduleRepository.deleteById(id);
+    await this.workingScheduleRepository.delete({ id, tenantId });
     return { message: 'Working schedule deleted', id };
   }
 

@@ -8,7 +8,7 @@ enum StatusEnum {
 export class ConfigureWorkingHoursDto {
   @IsOptional()
   @IsString()
-  name: string = 'Standard'; // e.g., "Standard", "Summer Schedule"
+  name?: string; // e.g., "Standard", "Summer Schedule"
 
   @IsOptional()
   @IsArray()

@@ -8,10 +8,14 @@ import { ValidationPipe } from './common/pipes/validation.pipe.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'https://hrm-frontend.vercel.app',
+  ];
 
   // Enable CORS for frontend development
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Language', 'X-Tenant-ID'],

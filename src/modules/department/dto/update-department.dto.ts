@@ -1,4 +1,5 @@
-import { IsString, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MaxLength, IsIn } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class UpdateDepartmentDto {
   @IsString()
@@ -10,4 +11,9 @@ export class UpdateDepartmentDto {
   @IsOptional()
   @MaxLength(255)
   description?: string;
+
+  @Transform(({ value }) => value?.toUpperCase())
+  @IsIn(['ACTIVE', 'INACTIVE'])
+  @IsOptional()
+  status?: 'ACTIVE' | 'INACTIVE';
 }

@@ -61,10 +61,7 @@ export class DepartmentService {
       }
     }
 
-    return await this.departmentRepository.update(id, {
-      name: dto.name,
-      description: dto.description,
-    });
+    return await this.departmentRepository.update(id, dto);
   }
 
   async deleteDepartment(tenantId: string, id: string) {

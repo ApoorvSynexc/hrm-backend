@@ -9,6 +9,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
@@ -18,7 +19,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
 @Controller('employee')
 export class EmployeeController {
-  constructor(private employeeService: EmployeeService) {}
+  constructor(private employeeService: EmployeeService) { }
 
   /**
    * Create a new employee
@@ -52,21 +53,46 @@ export class EmployeeController {
    * Get a specific employee by ID
    * GET /employees/:id
    */
-  @Get(':id')
+  @Get()
   @Permissions('read:employee')
   async getById(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Query('id') id: string,
   ) {
     const employee = await this.employeeService.getEmployeeById(tenantId, id);
     return { message: 'common.fetched', data: employee };
   }
 
   /**
+  * Get all employees across all tenants (excludes super admin)
+  * GET /employees/all?tenantId=xxx&status=ACTIVE&limit=10&page=1
+  */
+  @Get('all')
+  @Permissions('manage:all')
+  async getAllEmployeesForAmin(
+    @CurrentUser() user: JwtPayload,
+    @Query('tenantId') tenantId?: string,
+    @Query('status') status?: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
+  ) {
+    const filters: any = { tenantId: { not: null } };
+    if (tenantId) filters.tenantId = tenantId;
+    if (status) filters.status = status;
+
+    const result = await this.employeeService.getAllEmployees(filters, {
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+    });
+
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
+  }
+
+  /**
    * Update an employee
    * PATCH /employees/:id
    */
-  @Patch(':id')
+  @Put(':id')
   @HttpCode(HttpStatus.OK)
   @Permissions('update:employee')
   async update(
@@ -91,30 +117,5 @@ export class EmployeeController {
   ) {
     const employee = await this.employeeService.deleteEmployee(tenantId, id);
     return { message: 'common.deleted', data: employee };
-  }
-
-  /**
-   * Get all employees across all tenants (excludes super admin)
-   * GET /employees/all?tenantId=xxx&status=ACTIVE&limit=10&page=1
-   */
-  @Get('all')
-  @Permissions('manage:all')
-  async getAllEmployeesForAmin(
-    @CurrentUser() user: JwtPayload,
-    @Query('tenantId') tenantId?: string,
-    @Query('status') status?: string,
-    @Query('limit') limit?: number,
-    @Query('page') page?: number,
-  ) {
-    const filters: any = { tenantId: { not: null } };
-    if (tenantId) filters.tenantId = tenantId;
-    if (status) filters.status = status;
-
-    const result = await this.employeeService.getAllEmployees(filters, {
-      limit: limit ? Number(limit) : 10,
-      page: page ? Number(page) : 1,
-    });
-
-    return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 }

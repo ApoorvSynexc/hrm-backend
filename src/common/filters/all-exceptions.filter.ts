@@ -127,7 +127,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     // Get translated message, or use custom message if set
-    const message = customMessage || this.translate(messageKey, language);
+    // If customMessage looks like a message key (contains a dot), try to translate it
+    let message = customMessage || this.translate(messageKey, language);
+    if (customMessage && customMessage.includes('.')) {
+      const translated = this.translate(customMessage, language);
+      if (translated !== customMessage) {
+        message = translated;
+      }
+    }
 
     const responseBody: ErrorResponse = {
       status: false,

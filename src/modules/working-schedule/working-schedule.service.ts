@@ -106,10 +106,7 @@ export class WorkingScheduleService {
     });
 
     if (existing && existing.id !== excludeId) {
-      throw new BadRequestException({
-        message: 'working_schedule.duplicate_name',
-        context: { name },
-      });
+      throw new BadRequestException('working_schedule.duplicate_name');
     }
   }
 }

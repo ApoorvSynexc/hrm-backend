@@ -17,7 +17,12 @@ export class WorkingScheduleRepository {
 
   async findOne(where: Record<string, any>, tx?: TX) {
     return this.client(tx).workingSchedule.findUnique({
-      where: where as any,
+      where: {
+        tenantId_name: {
+          tenantId: where.tenantId,
+          name: where.name,
+        },
+      },
     });
   }
 
@@ -49,7 +54,12 @@ export class WorkingScheduleRepository {
     tx?: TX,
   ) {
     return this.client(tx).workingSchedule.update({
-      where: where as any,
+      where: {
+        tenantId_name: {
+          tenantId: where.tenantId,
+          name: where.name,
+        },
+      },
       data: data as any,
     });
   }

@@ -91,6 +91,7 @@ enum PermissionSubject {
   payroll
   attendance
   attendance_regularization
+  working_schedule
 }
 
 model Tenant {
@@ -231,7 +232,7 @@ model Permission {
   updatedAt       DateTime               @updatedAt
   rolePermissions RolePermission[]
 
-  @@unique([action, subject])
+  @@unique([action, subject], name: "uk_action_subject")
 }
 
 model RolePermission {

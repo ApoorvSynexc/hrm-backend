@@ -41,11 +41,11 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'update:designation',
     'delete:designation',
 
-    // Working Hours & Days Configuration
-    'read:working_hours',
-    'update:working_hours',
-    'read:working_days',
-    'update:working_days',
+    // Working Schedule Management
+    'create:working_schedule',
+    'read:working_schedule',
+    'update:working_schedule',
+    'delete:working_schedule',
 
     // Leave Management
     'create:leave',
@@ -94,9 +94,11 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'update:designation',
     'delete:designation',
 
-    // Working Hours & Days Configuration (Read-only)
-    'read:working_hours',
-    'read:working_days',
+    // Working Schedule Management (Read/Update only)
+    'create:working_schedule',
+    'read:working_schedule',
+    'update:working_schedule',
+    'delete:working_schedule',
 
     // Leave Management
     'create:leave',
@@ -127,6 +129,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     // Employee (Read-only - to see team members)
     'read:employee',
 
+    // Working Schedule (Read-only)
+    'read:working_schedule',
+
     // Leave (Approve requests from team members)
     'approve:leave',
     'read:leave',
@@ -142,6 +147,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
   EMPLOYEE: [
     // Employee (Read-only - own profile)
     'read:employee',
+
+    // Working Schedule (Read-only)
+    'read:working_schedule',
 
     // Leave (Self-service)
     'create:leave',

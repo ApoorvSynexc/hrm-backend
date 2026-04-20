@@ -289,35 +289,33 @@ export const DEFAULT_PERMISSIONS = [
     tenantId: null,
   },
 
-  // Working hours configuration
+  // Working schedule management
   {
-    id: '660e8400-e29b-41d4-a716-446655440060',
+    id: '660e8400-e29b-41d4-a716-446655440068',
+    action: 'create',
+    subject: 'working_schedule',
+    description: 'Create working schedules',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440069',
     action: 'read',
-    subject: 'working_hours',
-    description: 'View working hours configuration',
+    subject: 'working_schedule',
+    description: 'View working schedules',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440061',
+    id: '660e8400-e29b-41d4-a716-446655440070',
     action: 'update',
-    subject: 'working_hours',
-    description: 'Configure working hours',
-    tenantId: null,
-  },
-
-  // Working days configuration
-  {
-    id: '660e8400-e29b-41d4-a716-446655440062',
-    action: 'read',
-    subject: 'working_days',
-    description: 'View working days configuration',
+    subject: 'working_schedule',
+    description: 'Update working schedules',
     tenantId: null,
   },
   {
-    id: '660e8400-e29b-41d4-a716-446655440063',
-    action: 'update',
-    subject: 'working_days',
-    description: 'Configure working days',
+    id: '660e8400-e29b-41d4-a716-446655440071',
+    action: 'delete',
+    subject: 'working_schedule',
+    description: 'Delete working schedules',
     tenantId: null,
   },
 ] as const;

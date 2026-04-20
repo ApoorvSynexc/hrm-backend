@@ -32,35 +32,74 @@ async function seedGlobalRoles() {
 async function seedGlobalPermissions() {
   const permissions = [
     { id: '660e8400-e29b-41d4-a716-446655440000', action: 'manage', subject: 'all', description: 'Full system access (SUPER_ADMIN only)' },
+    // Employee management
     { id: '660e8400-e29b-41d4-a716-446655440001', action: 'create', subject: 'employee', description: 'Create employees' },
     { id: '660e8400-e29b-41d4-a716-446655440002', action: 'read', subject: 'employee', description: 'View employees' },
     { id: '660e8400-e29b-41d4-a716-446655440003', action: 'update', subject: 'employee', description: 'Update employees' },
     { id: '660e8400-e29b-41d4-a716-446655440004', action: 'delete', subject: 'employee', description: 'Delete employees' },
-    { id: '660e8400-e29b-41d4-a716-446655440005', action: 'create', subject: 'department', description: 'Create departments' },
-    { id: '660e8400-e29b-41d4-a716-446655440006', action: 'read', subject: 'department', description: 'View departments' },
-    { id: '660e8400-e29b-41d4-a716-446655440007', action: 'update', subject: 'department', description: 'Update departments' },
-    { id: '660e8400-e29b-41d4-a716-446655440008', action: 'delete', subject: 'department', description: 'Delete departments' },
-    { id: '660e8400-e29b-41d4-a716-446655440009', action: 'create', subject: 'role', description: 'Create roles' },
-    { id: '660e8400-e29b-41d4-a716-446655440010', action: 'read', subject: 'role', description: 'View roles' },
-    { id: '660e8400-e29b-41d4-a716-446655440011', action: 'update', subject: 'role', description: 'Update roles' },
-    { id: '660e8400-e29b-41d4-a716-446655440012', action: 'delete', subject: 'role', description: 'Delete roles' },
-    { id: '660e8400-e29b-41d4-a716-446655440013', action: 'manage', subject: 'role', description: 'Manage role permissions' },
-    { id: '660e8400-e29b-41d4-a716-446655440014', action: 'read', subject: 'permission', description: 'View permissions' },
-    { id: '660e8400-e29b-41d4-a716-446655440015', action: 'create', subject: 'attendance', description: 'Create attendance records' },
-    { id: '660e8400-e29b-41d4-a716-446655440016', action: 'read', subject: 'attendance', description: 'View attendance records' },
-    { id: '660e8400-e29b-41d4-a716-446655440017', action: 'create', subject: 'attendance_regularization', description: 'Create attendance regularization requests' },
-    { id: '660e8400-e29b-41d4-a716-446655440018', action: 'read', subject: 'attendance_regularization', description: 'View regularization requests' },
-    { id: '660e8400-e29b-41d4-a716-446655440019', action: 'approve', subject: 'attendance_regularization', description: 'Approve regularization requests' },
-    { id: '660e8400-e29b-41d4-a716-446655440020', action: 'read', subject: 'tenant', description: 'View tenant config' },
-    { id: '660e8400-e29b-41d4-a716-446655440021', action: 'manage', subject: 'tenant', description: 'Manage tenant config' },
+    // Role management
+    { id: '660e8400-e29b-41d4-a716-446655440005', action: 'create', subject: 'role', description: 'Create roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440032', action: 'read', subject: 'role', description: 'View roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440033', action: 'update', subject: 'role', description: 'Update roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440034', action: 'delete', subject: 'role', description: 'Delete roles' },
+    { id: '660e8400-e29b-41d4-a716-446655440035', action: 'manage', subject: 'role', description: 'Manage role permissions' },
+    // Permission management
+    { id: '660e8400-e29b-41d4-a716-446655440036', action: 'read', subject: 'permission', description: 'View permissions' },
+    // Department management
+    { id: '660e8400-e29b-41d4-a716-446655440037', action: 'create', subject: 'department', description: 'Create departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440038', action: 'read', subject: 'department', description: 'View departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440039', action: 'update', subject: 'department', description: 'Update departments' },
+    { id: '660e8400-e29b-41d4-a716-446655440040', action: 'delete', subject: 'department', description: 'Delete departments' },
+    // Designation management
+    { id: '660e8400-e29b-41d4-a716-446655440064', action: 'create', subject: 'designation', description: 'Create designations' },
+    { id: '660e8400-e29b-41d4-a716-446655440065', action: 'read', subject: 'designation', description: 'View designations' },
+    { id: '660e8400-e29b-41d4-a716-446655440066', action: 'update', subject: 'designation', description: 'Update designations' },
+    { id: '660e8400-e29b-41d4-a716-446655440067', action: 'delete', subject: 'designation', description: 'Delete designations' },
+    // Leave management
+    { id: '660e8400-e29b-41d4-a716-446655440041', action: 'create', subject: 'leave', description: 'Create leave requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440042', action: 'read', subject: 'leave', description: 'View leave requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440043', action: 'update', subject: 'leave', description: 'Update leave requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440044', action: 'delete', subject: 'leave', description: 'Delete leave requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440045', action: 'approve', subject: 'leave', description: 'Approve leave requests' },
+    // Payroll management
+    { id: '660e8400-e29b-41d4-a716-446655440046', action: 'create', subject: 'payroll', description: 'Create payroll records' },
+    { id: '660e8400-e29b-41d4-a716-446655440047', action: 'read', subject: 'payroll', description: 'View payroll records' },
+    { id: '660e8400-e29b-41d4-a716-446655440048', action: 'update', subject: 'payroll', description: 'Update payroll records' },
+    { id: '660e8400-e29b-41d4-a716-446655440049', action: 'delete', subject: 'payroll', description: 'Delete payroll records' },
+    { id: '660e8400-e29b-41d4-a716-446655440050', action: 'approve', subject: 'payroll', description: 'Approve payroll' },
+    // Attendance management
+    { id: '660e8400-e29b-41d4-a716-446655440051', action: 'create', subject: 'attendance', description: 'Create attendance records' },
+    { id: '660e8400-e29b-41d4-a716-446655440052', action: 'read', subject: 'attendance', description: 'View attendance records' },
+    { id: '660e8400-e29b-41d4-a716-446655440053', action: 'update', subject: 'attendance', description: 'Update attendance records' },
+    { id: '660e8400-e29b-41d4-a716-446655440054', action: 'delete', subject: 'attendance', description: 'Delete attendance records' },
+    // Attendance regularization
+    { id: '660e8400-e29b-41d4-a716-446655440055', action: 'create', subject: 'attendance_regularization', description: 'Request attendance regularization' },
+    { id: '660e8400-e29b-41d4-a716-446655440056', action: 'read', subject: 'attendance_regularization', description: 'View attendance regularization requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440057', action: 'update', subject: 'attendance_regularization', description: 'Update attendance regularization requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440058', action: 'delete', subject: 'attendance_regularization', description: 'Delete attendance regularization requests' },
+    { id: '660e8400-e29b-41d4-a716-446655440059', action: 'approve', subject: 'attendance_regularization', description: 'Approve attendance regularization requests' },
+    // Working schedule management
+    { id: '660e8400-e29b-41d4-a716-446655440068', action: 'create', subject: 'working_schedule', description: 'Create working schedules' },
+    { id: '660e8400-e29b-41d4-a716-446655440069', action: 'read', subject: 'working_schedule', description: 'View working schedules' },
+    { id: '660e8400-e29b-41d4-a716-446655440070', action: 'update', subject: 'working_schedule', description: 'Update working schedules' },
+    { id: '660e8400-e29b-41d4-a716-446655440071', action: 'delete', subject: 'working_schedule', description: 'Delete working schedules' },
   ];
 
   for (const perm of permissions) {
-    await prisma.permission.upsert({
-      where: { id: perm.id },
-      update: { action: perm.action as any, subject: perm.subject as any, description: perm.description },
-      create: { ...perm, action: perm.action as any, subject: perm.subject as any },
+    const existing = await prisma.permission.findFirst({
+      where: { action: perm.action as any, subject: perm.subject as any },
     });
+
+    if (existing) {
+      await prisma.permission.update({
+        where: { id: existing.id },
+        data: { description: perm.description },
+      });
+    } else {
+      await prisma.permission.create({
+        data: { ...perm, action: perm.action as any, subject: perm.subject as any },
+      });
+    }
   }
 
   console.log(`✓ ${permissions.length} permissions seeded`);

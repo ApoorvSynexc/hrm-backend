@@ -39,7 +39,7 @@ export class EmployeeController {
    * List all employees
    * GET /employees
    */
-  @Get()
+  @Get("list")
   @Permissions('read:employee')
   async list(
     @CurrentUser('tenantId') tenantId: string,

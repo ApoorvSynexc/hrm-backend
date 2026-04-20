@@ -6,12 +6,11 @@ import {
   Delete,
   Body,
   Query,
-  Param,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { TenantService } from './tenant.service.js';
-import { CreateTenantDto, UpdateTenantDto, ConfigureWorkingHoursDto } from './dto/index.js';
+import { CreateTenantDto, UpdateTenantDto } from './dto/index.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 
@@ -48,28 +47,6 @@ export class TenantController {
   @Permissions('manage:tenant')
   update(@CurrentUser('tenantId') tenantId: string, @Body() dto: UpdateTenantDto) {
     return this.tenantService.updateTenant(tenantId, dto);
-  }
-
-  @Get('working-schedule')
-  @Permissions('read:working_hours')
-  async getWorkingSchedule(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('name') name: string = 'Standard',
-  ) {
-    const config = await this.tenantService.getWorkingSchedule(tenantId, name);
-    return { message: 'common.fetched', data: config };
-  }
-
-  @Post('working-schedule')
-  @HttpCode(HttpStatus.OK)
-  @Permissions('update:working_hours')
-  async configureWorkingSchedule(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('name') name: string = 'Standard',
-    @Body() dto: ConfigureWorkingHoursDto,
-  ) {
-    const config = await this.tenantService.configureWorkingSchedule(tenantId, name, dto);
-    return { message: 'common.updated', data: config };
   }
 
   @Delete()

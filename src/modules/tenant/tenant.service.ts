@@ -3,17 +3,13 @@ import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { UserRepository } from '../account/repositories/user.repository.js';
 import { EmployeeRepository } from '../employee/repositories/employee.repository.js';
 import { CounterRepository } from '../../common/repositories/counter.repository.js';
-import {
-  TenantRepository,
-  WorkingScheduleRepository,
-} from './repositories/index.js';
+import { TenantRepository } from './repositories/index.js';
 import {
   RoleRepository,
   PermissionRepository,
   RolePermissionRepository,
 } from '../role/repositories/index.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
-import { ConfigureWorkingHoursDto, ConfigureWorkingDaysDto } from './dto/configure-working-hours.dto.js';
 import { DEFAULT_ROLE_PERMISSIONS, DEFAULT_ROLES } from '../../assets/default/index.js';
 import bcrypt from 'bcrypt';
 
@@ -27,7 +23,6 @@ export class TenantService {
     private rolePermissionRepository: RolePermissionRepository,
     private userRepository: UserRepository,
     private employeeRepository: EmployeeRepository,
-    private workingScheduleRepository: WorkingScheduleRepository,
     private counterRepository: CounterRepository,
   ) {}
 
@@ -320,40 +315,6 @@ export class TenantService {
         },
       }
     );
-  }
-
-  async configureWorkingSchedule(tenantId: string, name: string, dto: ConfigureWorkingHoursDto) {
-    const tenant = await this.tenantRepository.find({ id: tenantId });
-    if (!tenant) {
-      throw new BadRequestException('Tenant not found');
-    }
-
-    const validDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    for (const day of dto.workingDays) {
-      if (!validDays.includes(day)) {
-        throw new BadRequestException(`Invalid day: ${day}. Must be one of: ${validDays.join(', ')}`);
-      }
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      await this.workingScheduleRepository.deleteByTenantAndName(tenantId, name, tx);
-
-      const scheduleData = validDays.map((day) => ({
-        tenantId,
-        name,
-        day,
-        isWorking: dto.workingDays.includes(day),
-        workingHoursPerDay: dto.workingHoursPerDay || 480,
-      }));
-
-      await this.workingScheduleRepository.createMany(scheduleData, tx);
-    });
-
-    return await this.workingScheduleRepository.findByTenantAndName(tenantId, name);
-  }
-
-  async getWorkingSchedule(tenantId: string, name: string = 'Standard') {
-    return await this.workingScheduleRepository.findByTenantAndName(tenantId, name);
   }
 
   async listTenants(options: {

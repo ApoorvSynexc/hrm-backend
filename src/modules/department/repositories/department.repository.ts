@@ -14,27 +14,13 @@ export class DepartmentRepository {
   }
 
   /**
-   * Find a department by tenant and ID (excludes deleted)
+   * Find a single department by flexible where clause (excludes deleted)
    */
-  async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
+  async find(where: Record<string, any>, tx?: TX) {
     return this.client(tx).department.findFirst({
       where: {
-        id,
-        tenantId,
         status: { not: Status.DELETED },
-      },
-    });
-  }
-
-  /**
-   * Find a department by tenant and name (excludes deleted)
-   */
-  async findByTenantAndName(tenantId: string, name: string, tx?: TX) {
-    return this.client(tx).department.findFirst({
-      where: {
-        tenantId,
-        name,
-        status: { not: Status.DELETED },
+        ...where,
       },
     });
   }
@@ -42,11 +28,11 @@ export class DepartmentRepository {
   /**
    * Find all departments for a tenant (excluding deleted)
    */
-  async findManyByTenant(tenantId: string, tx?: TX) {
+  async findAll(where?: Record<string, any>, tx?: TX) {
     return this.client(tx).department.findMany({
       where: {
-        tenantId,
         status: { not: Status.DELETED },
+        ...(where || {}),
       },
       orderBy: { createdAt: 'desc' },
     });

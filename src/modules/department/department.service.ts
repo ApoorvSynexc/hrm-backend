@@ -8,10 +8,10 @@ export class DepartmentService {
 
   async createDepartment(tenantId: string, dto: CreateDepartmentDto) {
     // Check if department name already exists for this tenant
-    const existingDept = await this.departmentRepository.findByTenantAndName(
+    const existingDept = await this.departmentRepository.find({
       tenantId,
-      dto.name,
-    );
+      name: dto.name,
+    });
 
     if (existingDept) {
       throw new BadRequestException(
@@ -27,11 +27,11 @@ export class DepartmentService {
   }
 
   async getDepartments(tenantId: string) {
-    return await this.departmentRepository.findManyByTenant(tenantId);
+    return await this.departmentRepository.findAll({ tenantId });
   }
 
   async getDepartmentById(tenantId: string, id: string) {
-    const dept = await this.departmentRepository.findByTenantAndId(tenantId, id);
+    const dept = await this.departmentRepository.find({ tenantId, id });
 
     if (!dept) {
       throw new NotFoundException('Department not found');
@@ -49,10 +49,10 @@ export class DepartmentService {
 
     // Check name uniqueness if name is being changed
     if (dto.name && dto.name !== dept.name) {
-      const existingDept = await this.departmentRepository.findByTenantAndName(
+      const existingDept = await this.departmentRepository.find({
         tenantId,
-        dto.name,
-      );
+        name: dto.name,
+      });
 
       if (existingDept) {
         throw new BadRequestException(

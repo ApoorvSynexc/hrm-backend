@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { TenantRepository } from '../tenant/repositories/index.js';
 import { ConfigureWorkingHoursDto } from './dto/index.js';
 import { WorkingScheduleRepository } from './repositories/index.js';
@@ -9,55 +8,57 @@ const VALID_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 @Injectable()
 export class WorkingScheduleService {
   constructor(
-    private prisma: PrismaService,
     private tenantRepository: TenantRepository,
     private workingScheduleRepository: WorkingScheduleRepository,
   ) {}
 
-  async configureWorkingSchedule(
-    tenantId: string,
-    name: string,
-    dto: ConfigureWorkingHoursDto,
-  ) {
-    const tenant = await this.tenantRepository.find({ id: tenantId });
-    if (!tenant) {
-      throw new BadRequestException('Tenant not found');
-    }
+  async create(tenantId: string, dto: ConfigureWorkingHoursDto) {
+    await this.validateTenant(tenantId);
+    const { name, workingDays = [], startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
+    this.validateWorkingDays(workingDays || []);
 
-    if (dto.workingDays) {
-      this.validateWorkingDays(dto.workingDays);
-    }
-
-    const schedule = await this.workingScheduleRepository.findOne({
+    return await this.workingScheduleRepository.create({
       tenantId,
       name,
+      workingDays,
+      startTime,
+      endTime,
+      breakDuration,
+      workingHoursPerDay,
+      status: status || 'ACTIVE',
     });
-
-    const scheduleData = {
-      tenantId,
-      name,
-      workingDays: dto.workingDays || schedule?.workingDays || ['MON', 'TUE', 'WED', 'THU', 'FRI'],
-      startTime: dto.startTime || schedule?.startTime || '09:00',
-      endTime: dto.endTime || schedule?.endTime || '17:00',
-      breakDuration: dto.breakDuration ?? (schedule?.breakDuration || 1),
-      workingHoursPerDay: dto.workingHoursPerDay ?? schedule?.workingHoursPerDay ?? 480,
-    };
-
-    if (schedule) {
-      return await this.workingScheduleRepository.update(
-        { tenantId, name },
-        scheduleData,
-      );
-    }
-
-    return await this.workingScheduleRepository.create(scheduleData);
   }
 
-  async getWorkingSchedules(tenantId: string) {
+  async update(tenantId: string, dto: ConfigureWorkingHoursDto) {
+    await this.validateTenant(tenantId);
+    const { name, workingDays, startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
+
+    if (workingDays && workingDays.length > 0) {
+      this.validateWorkingDays(workingDays);
+    }
+
+    const updateData: any = {};
+    if (workingDays && workingDays.length > 0) updateData.workingDays = workingDays;
+    if (startTime) updateData.startTime = startTime;
+    if (endTime) updateData.endTime = endTime;
+    if (breakDuration !== undefined) updateData.breakDuration = breakDuration;
+    if (workingHoursPerDay !== undefined) updateData.workingHoursPerDay = workingHoursPerDay;
+    if (status) updateData.status = status;
+
+    return await this.workingScheduleRepository.update(
+      { tenantId, name },
+      updateData,
+    );
+  }
+
+  async list(tenantId: string, name?: string) {
+    if (name) {
+      return await this.get(tenantId, name);
+    }
     return await this.workingScheduleRepository.findAll({ tenantId });
   }
 
-  async getWorkingSchedule(tenantId: string, name: string = 'Standard') {
+  async get(tenantId: string, name: string = 'Standard') {
     const schedule = await this.workingScheduleRepository.findOne({
       tenantId,
       name,
@@ -70,10 +71,17 @@ export class WorkingScheduleService {
     return schedule;
   }
 
-  async deleteWorkingSchedule(tenantId: string, name: string = 'Standard') {
-    await this.getWorkingSchedule(tenantId, name);
+  async delete(tenantId: string, name: string = 'Standard') {
+    await this.get(tenantId, name);
     await this.workingScheduleRepository.delete({ tenantId, name });
-    return { name };
+    return { message: 'Working schedule deleted', name };
+  }
+
+  private async validateTenant(tenantId: string) {
+    const tenant = await this.tenantRepository.find({ id: tenantId });
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
+    }
   }
 
   private validateWorkingDays(workingDays: string[]) {

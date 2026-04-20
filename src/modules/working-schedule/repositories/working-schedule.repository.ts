@@ -64,6 +64,23 @@ export class WorkingScheduleRepository {
     });
   }
 
+  async upsert(
+    where: Record<string, any>,
+    data: Record<string, any>,
+    tx?: TX,
+  ) {
+    return this.client(tx).workingSchedule.upsert({
+      where: {
+        tenantId_name: {
+          tenantId: where.tenantId,
+          name: where.name,
+        },
+      },
+      update: data as any,
+      create: data as any,
+    });
+  }
+
   async delete(where: Record<string, any>, tx?: TX) {
     return this.client(tx).workingSchedule.deleteMany({ where });
   }

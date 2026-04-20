@@ -23,51 +23,20 @@ export class WorkingScheduleController {
   @Permissions('create:working_schedule')
   async create(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('name') name: string = 'Standard',
     @Body() dto: ConfigureWorkingHoursDto,
   ) {
-    const config = await this.workingScheduleService.configureWorkingSchedule(
-      tenantId,
-      name,
-      dto,
-    );
-    return { message: 'common.created', data: config };
+    const result = await this.workingScheduleService.create(tenantId, dto);
+    return { message: 'common.created', data: result };
   }
 
-  @Get('list')
+  @Get("list")
   @Permissions('read:working_schedule')
   async list(
     @CurrentUser('tenantId') tenantId: string,
     @Query('name') name?: string,
   ) {
-    if (name) {
-      const config = await this.workingScheduleService.getWorkingSchedule(
-        tenantId,
-        name,
-      );
-      return { message: 'common.fetched', data: config };
-    }
-
-    const config = await this.workingScheduleService.getWorkingSchedules(tenantId);
-    return { message: 'common.fetched', data: config };
-  }
-
-  @Get()
-  @Permissions('read:working_schedule')
-  async workingSchedule(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('name') name: string = 'Standard',
-  ) {
-
-    if(!tenantId) {
-      return { message: 'Tenant ID is required', data: null };
-    }
-
-    const config = await this.workingScheduleService.getWorkingSchedule(
-      tenantId,
-      name,
-    );
-    return { message: 'common.fetched', data: config };
+    const result = await this.workingScheduleService.list(tenantId, name);
+    return { message: 'common.fetched', data: result };
   }
 
   @Put()
@@ -75,15 +44,10 @@ export class WorkingScheduleController {
   @Permissions('update:working_schedule')
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('name') name: string = 'Standard',
     @Body() dto: ConfigureWorkingHoursDto,
   ) {
-    const config = await this.workingScheduleService.configureWorkingSchedule(
-      tenantId,
-      name,
-      dto,
-    );
-    return { message: 'common.updated', data: config };
+    const result = await this.workingScheduleService.update(tenantId, dto);
+    return { message: 'common.updated', data: result };
   }
 
   @Delete()
@@ -93,10 +57,7 @@ export class WorkingScheduleController {
     @CurrentUser('tenantId') tenantId: string,
     @Query('name') name: string = 'Standard',
   ) {
-    const config = await this.workingScheduleService.deleteWorkingSchedule(
-      tenantId,
-      name,
-    );
-    return { message: 'common.deleted', data: config };
+    const result = await this.workingScheduleService.delete(tenantId, name);
+    return { message: 'common.deleted', data: result };
   }
 }

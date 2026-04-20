@@ -35,6 +35,12 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'update:department',
     'delete:department',
 
+    // Designation Management
+    'create:designation',
+    'read:designation',
+    'update:designation',
+    'delete:designation',
+
     // Working Hours & Days Configuration
     'read:working_hours',
     'update:working_hours',
@@ -81,6 +87,12 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'read:department',
     'update:department',
     'delete:department',
+
+    // Designation Management
+    'create:designation',
+    'read:designation',
+    'update:designation',
+    'delete:designation',
 
     // Working Hours & Days Configuration (Read-only)
     'read:working_hours',

@@ -59,13 +59,16 @@ export class AttendanceService {
       throw new BadRequestException('Already checked out today');
     }
 
-    const workingHours = await this.prisma.workingHours.findUnique({
-      where: { tenantId },
+    const workingSchedule = await this.prisma.workingSchedule.findMany({
+      where: { tenantId, name: 'Standard', isWorking: true },
     });
 
     const checkOut = new Date();
     const totalMinutes = Math.floor((checkOut.getTime() - new Date(record.checkIn).getTime()) / 60000);
-    const halfDayThreshold = (workingHours?.workingHoursPerDay ?? 480) * 0.5;
+    const avgHours = workingSchedule.length > 0
+      ? Math.round(workingSchedule.reduce((sum, s) => sum + s.workingHoursPerDay, 0) / workingSchedule.length)
+      : 480;
+    const halfDayThreshold = avgHours * 0.5;
     const status = totalMinutes < halfDayThreshold ? 'HALF_DAY' : record.status;
 
     return await this.attendanceRepository.update(record.id, {

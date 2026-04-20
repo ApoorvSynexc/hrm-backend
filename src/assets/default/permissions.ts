@@ -118,6 +118,36 @@ export const DEFAULT_PERMISSIONS = [
     tenantId: null,
   },
 
+  // Designation management
+  {
+    id: '660e8400-e29b-41d4-a716-446655440064',
+    action: 'create',
+    subject: 'designation',
+    description: 'Create designations',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440065',
+    action: 'read',
+    subject: 'designation',
+    description: 'View designations',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440066',
+    action: 'update',
+    subject: 'designation',
+    description: 'Update designations',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440067',
+    action: 'delete',
+    subject: 'designation',
+    description: 'Delete designations',
+    tenantId: null,
+  },
+
   // Leave management
   {
     id: '660e8400-e29b-41d4-a716-446655440041',

@@ -5,8 +5,7 @@ import { EmployeeRepository } from '../employee/repositories/employee.repository
 import { CounterRepository } from '../../common/repositories/counter.repository.js';
 import {
   TenantRepository,
-  WorkingHoursRepository,
-  WorkingDayRepository,
+  WorkingScheduleRepository,
 } from './repositories/index.js';
 import {
   RoleRepository,
@@ -28,8 +27,7 @@ export class TenantService {
     private rolePermissionRepository: RolePermissionRepository,
     private userRepository: UserRepository,
     private employeeRepository: EmployeeRepository,
-    private workingHoursRepository: WorkingHoursRepository,
-    private workingDayRepository: WorkingDayRepository,
+    private workingScheduleRepository: WorkingScheduleRepository,
     private counterRepository: CounterRepository,
   ) {}
 
@@ -324,18 +322,7 @@ export class TenantService {
     );
   }
 
-  async configureWorkingHours(tenantId: string, dto: ConfigureWorkingHoursDto) {
-    const tenant = await this.tenantRepository.find({ id: tenantId });
-    if (!tenant) {
-      throw new BadRequestException('Tenant not found');
-    }
-
-    return await this.workingHoursRepository.upsert(tenantId, {
-      workingHoursPerDay: dto.workingHoursPerDay,
-    });
-  }
-
-  async configureWorkingDays(tenantId: string, dto: ConfigureWorkingDaysDto) {
+  async configureWorkingSchedule(tenantId: string, name: string, dto: ConfigureWorkingHoursDto) {
     const tenant = await this.tenantRepository.find({ id: tenantId });
     if (!tenant) {
       throw new BadRequestException('Tenant not found');
@@ -349,26 +336,24 @@ export class TenantService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await this.workingDayRepository.deleteByTenant(tenantId, tx);
+      await this.workingScheduleRepository.deleteByTenantAndName(tenantId, name, tx);
 
-      const workingDaysData = validDays.map((day) => ({
+      const scheduleData = validDays.map((day) => ({
         tenantId,
+        name,
         day,
         isWorking: dto.workingDays.includes(day),
+        workingHoursPerDay: dto.workingHoursPerDay || 480,
       }));
 
-      await this.workingDayRepository.createMany(workingDaysData, tx);
+      await this.workingScheduleRepository.createMany(scheduleData, tx);
     });
 
-    return await this.workingDayRepository.findByTenantId(tenantId);
+    return await this.workingScheduleRepository.findByTenantAndName(tenantId, name);
   }
 
-  async getWorkingHoursConfig(tenantId: string) {
-    return await this.workingHoursRepository.findByTenantId(tenantId);
-  }
-
-  async getWorkingDaysConfig(tenantId: string) {
-    return await this.workingDayRepository.findByTenantId(tenantId);
+  async getWorkingSchedule(tenantId: string, name: string = 'Standard') {
+    return await this.workingScheduleRepository.findByTenantAndName(tenantId, name);
   }
 
   async listTenants(options: {
@@ -432,13 +417,8 @@ export class TenantService {
         where: { tenantId },
       });
 
-      // Delete working hours
-      await tx.workingHours.deleteMany({
-        where: { tenantId },
-      });
-
-      // Delete working days
-      await tx.workingDay.deleteMany({
+      // Delete working schedules
+      await tx.workingSchedule.deleteMany({
         where: { tenantId },
       });
 

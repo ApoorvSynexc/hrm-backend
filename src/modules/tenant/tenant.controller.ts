@@ -11,7 +11,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { TenantService } from './tenant.service.js';
-import { CreateTenantDto, UpdateTenantDto, ConfigureWorkingHoursDto, ConfigureWorkingDaysDto } from './dto/index.js';
+import { CreateTenantDto, UpdateTenantDto, ConfigureWorkingHoursDto } from './dto/index.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 
@@ -50,39 +50,25 @@ export class TenantController {
     return this.tenantService.updateTenant(tenantId, dto);
   }
 
-  @Get('working-hours')
+  @Get('working-schedule')
   @Permissions('read:working_hours')
-  async getWorkingHours(@CurrentUser('tenantId') tenantId: string) {
-    const config = await this.tenantService.getWorkingHoursConfig(tenantId);
+  async getWorkingSchedule(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('name') name: string = 'Standard',
+  ) {
+    const config = await this.tenantService.getWorkingSchedule(tenantId, name);
     return { message: 'common.fetched', data: config };
   }
 
-  @Post('working-hours')
+  @Post('working-schedule')
   @HttpCode(HttpStatus.OK)
   @Permissions('update:working_hours')
-  async configureWorkingHours(
+  async configureWorkingSchedule(
     @CurrentUser('tenantId') tenantId: string,
+    @Query('name') name: string = 'Standard',
     @Body() dto: ConfigureWorkingHoursDto,
   ) {
-    const config = await this.tenantService.configureWorkingHours(tenantId, dto);
-    return { message: 'common.updated', data: config };
-  }
-
-  @Get('working-days')
-  @Permissions('read:working_days')
-  async getWorkingDays(@CurrentUser('tenantId') tenantId: string) {
-    const config = await this.tenantService.getWorkingDaysConfig(tenantId);
-    return { message: 'common.fetched', data: config };
-  }
-
-  @Post('working-days')
-  @HttpCode(HttpStatus.OK)
-  @Permissions('update:working_days')
-  async configureWorkingDays(
-    @CurrentUser('tenantId') tenantId: string,
-    @Body() dto: ConfigureWorkingDaysDto,
-  ) {
-    const config = await this.tenantService.configureWorkingDays(tenantId, dto);
+    const config = await this.tenantService.configureWorkingSchedule(tenantId, name, dto);
     return { message: 'common.updated', data: config };
   }
 

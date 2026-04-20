@@ -60,6 +60,28 @@ export const MESSAGES = {
     en: 'Internal server error',
     ru: 'Внутренняя ошибка сервера',
   },
+
+  // Working Schedule
+  'working_schedule.duplicate_name': {
+    en: 'Working schedule with name "{name}" already exists for this tenant',
+    ru: 'График работы с названием "{name}" уже существует для этого тенанта',
+  },
+  'working_schedule.not_found': {
+    en: 'Working schedule not found',
+    ru: 'График работы не найден',
+  },
+  'working_schedule.tenant_not_found': {
+    en: 'Tenant not found',
+    ru: 'Тенант не найден',
+  },
+  'working_schedule.invalid_working_days': {
+    en: 'workingDays must be a non-empty array',
+    ru: 'workingDays должна быть непустым массивом',
+  },
+  'working_schedule.invalid_day': {
+    en: 'Invalid day: {day}. Must be one of: {days}',
+    ru: 'Неверный день: {day}. Должен быть одним из: {days}',
+  },
 } as const;
 
 export type MessageKey = keyof typeof MESSAGES;

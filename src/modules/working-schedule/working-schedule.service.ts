@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { MESSAGES } from '../../common/constants/messages.js';
 import { TenantRepository } from '../tenant/repositories/index.js';
 import { ConfigureWorkingHoursDto } from './dto/index.js';
 import { WorkingScheduleRepository } from './repositories/index.js';
@@ -16,6 +17,7 @@ export class WorkingScheduleService {
     await this.validateTenant(tenantId);
     const { name = 'Standard', workingDays = [], startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
     this.validateWorkingDays(workingDays || []);
+    await this.checkNameUniqueness(tenantId, name);
 
     return await this.workingScheduleRepository.create({
       tenantId,
@@ -35,6 +37,10 @@ export class WorkingScheduleService {
 
     if (workingDays && workingDays.length > 0) {
       this.validateWorkingDays(workingDays);
+    }
+
+    if (name) {
+      await this.checkNameUniqueness(tenantId, name, id);
     }
 
     const updateData: any = {};
@@ -63,7 +69,7 @@ export class WorkingScheduleService {
     });
 
     if (!schedule) {
-      throw new NotFoundException('Working schedule not found');
+      throw new NotFoundException('working_schedule.not_found');
     }
 
     return schedule;
@@ -71,27 +77,39 @@ export class WorkingScheduleService {
 
   async delete(tenantId: string, id: string) {
     await this.workingScheduleRepository.delete({ id, tenantId });
-    return { message: 'Working schedule deleted', id };
+    return { id };
   }
 
   private async validateTenant(tenantId: string) {
     const tenant = await this.tenantRepository.find({ id: tenantId });
     if (!tenant) {
-      throw new BadRequestException('Tenant not found');
+      throw new BadRequestException('working_schedule.tenant_not_found');
     }
   }
 
   private validateWorkingDays(workingDays: string[]) {
     if (!Array.isArray(workingDays) || workingDays.length === 0) {
-      throw new BadRequestException('workingDays must be a non-empty array');
+      throw new BadRequestException('working_schedule.invalid_working_days');
     }
 
     for (const day of workingDays) {
       if (!VALID_DAYS.includes(day)) {
-        throw new BadRequestException(
-          `Invalid day: ${day}. Must be one of: ${VALID_DAYS.join(', ')}`,
-        );
+        throw new BadRequestException('working_schedule.invalid_day');
       }
+    }
+  }
+
+  private async checkNameUniqueness(tenantId: string, name: string, excludeId?: string) {
+    const existing = await this.workingScheduleRepository.findOne({
+      tenantId,
+      name,
+    });
+
+    if (existing && existing.id !== excludeId) {
+      throw new BadRequestException({
+        message: 'working_schedule.duplicate_name',
+        context: { name },
+      });
     }
   }
 }

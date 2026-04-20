@@ -64,6 +64,13 @@ export class WorkingScheduleRepository {
     });
   }
 
+  async updateById(id: string, data: Record<string, any>, tx?: TX) {
+    return this.client(tx).workingSchedule.update({
+      where: { id },
+      data: data as any,
+    });
+  }
+
   async upsert(
     where: Record<string, any>,
     data: Record<string, any>,
@@ -83,5 +90,11 @@ export class WorkingScheduleRepository {
 
   async delete(where: Record<string, any>, tx?: TX) {
     return this.client(tx).workingSchedule.deleteMany({ where });
+  }
+
+  async deleteById(id: string, tx?: TX) {
+    return this.client(tx).workingSchedule.delete({
+      where: { id },
+    });
   }
 }

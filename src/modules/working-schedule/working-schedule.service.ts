@@ -29,7 +29,7 @@ export class WorkingScheduleService {
     });
   }
 
-  async update(tenantId: string, dto: ConfigureWorkingHoursDto) {
+  async update(tenantId: string, id: string, dto: ConfigureWorkingHoursDto) {
     await this.validateTenant(tenantId);
     const { name, workingDays, startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
 
@@ -38,6 +38,7 @@ export class WorkingScheduleService {
     }
 
     const updateData: any = {};
+    if (name) updateData.name = name;
     if (workingDays && workingDays.length > 0) updateData.workingDays = workingDays;
     if (startTime) updateData.startTime = startTime;
     if (endTime) updateData.endTime = endTime;
@@ -45,10 +46,7 @@ export class WorkingScheduleService {
     if (workingHoursPerDay !== undefined) updateData.workingHoursPerDay = workingHoursPerDay;
     if (status) updateData.status = status;
 
-    return await this.workingScheduleRepository.update(
-      { tenantId, name },
-      updateData,
-    );
+    return await this.workingScheduleRepository.updateById(id, updateData);
   }
 
   async list(tenantId: string, name?: string) {
@@ -71,10 +69,9 @@ export class WorkingScheduleService {
     return schedule;
   }
 
-  async delete(tenantId: string, name: string = 'Standard') {
-    await this.get(tenantId, name);
-    await this.workingScheduleRepository.delete({ tenantId, name });
-    return { message: 'Working schedule deleted', name };
+  async delete(tenantId: string, id: string) {
+    await this.workingScheduleRepository.deleteById(id);
+    return { message: 'Working schedule deleted', id };
   }
 
   private async validateTenant(tenantId: string) {

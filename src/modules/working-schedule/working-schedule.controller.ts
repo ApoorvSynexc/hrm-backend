@@ -44,9 +44,10 @@ export class WorkingScheduleController {
   @Permissions('update:working_schedule')
   async update(
     @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
     @Body() dto: ConfigureWorkingHoursDto,
   ) {
-    const result = await this.workingScheduleService.update(tenantId, dto);
+    const result = await this.workingScheduleService.update(tenantId, id, dto);
     return { message: 'common.updated', data: result };
   }
 
@@ -55,9 +56,9 @@ export class WorkingScheduleController {
   @Permissions('delete:working_schedule')
   async delete(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('name') name: string = 'Standard',
+    @Query('id') id: string,
   ) {
-    const result = await this.workingScheduleService.delete(tenantId, name);
+    const result = await this.workingScheduleService.delete(tenantId, id);
     return { message: 'common.deleted', data: result };
   }
 }

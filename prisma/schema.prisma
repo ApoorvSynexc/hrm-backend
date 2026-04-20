@@ -137,7 +137,6 @@ model WorkingSchedule {
   @@unique([tenantId, name])
   @@index([tenantId])
   @@index([tenantId, name])
-  @@index([tenantId, status])
 }
 
 model TenantDomain {

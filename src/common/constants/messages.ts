@@ -63,8 +63,8 @@ export const MESSAGES = {
 
   // Working Schedule
   'working_schedule.duplicate_name': {
-    en: 'Working schedule with name "{name}" already exists for this tenant',
-    ru: 'График работы с названием "{name}" уже существует для этого тенанта',
+    en: 'Working schedule with this name already exists for this tenant',
+    ru: 'График работы с этим названием уже существует для этого тенанта',
   },
   'working_schedule.not_found': {
     en: 'Working schedule not found',

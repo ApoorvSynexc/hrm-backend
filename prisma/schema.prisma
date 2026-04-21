@@ -153,21 +153,38 @@ model TenantDomain {
 model User {
   id           String  @id @default(cuid())
   tenantId     String?
-  email        String
-  passwordHash String
-  firstName    String
-  lastName     String
-  phone        String?
-  status       Status  @default(ACTIVE)
-  roleId       String?
+
+  // Auth
+  email           String
+  passwordHash    String
+  lastLoginAt     DateTime?
+  loginAttempts   Int      @default(0)
+  lockedUntil     DateTime?
+
+  // Basic Info
+  firstName       String
+  lastName        String
+  avatarUrl       String?
+
+  // HR Extensions
+  dateOfBirth     DateTime?
+  gender          String?
+  maritalStatus   String?
+
+  // Status
+  status          Status   @default(ACTIVE)
+  roleId          String?
 
   // Employee-specific fields (optional - only for actual employees)
-  employeeCode     String? // Only for actual employees
-  departmentId     String?
-  designationId    String?
-  hireDate         DateTime? // Only for actual employees
-  employmentStatus EmploymentStatus @default(ACTIVE)
-  salary           Decimal?         @db.Decimal(12, 2)
+  employeeCode      String?       // Only for actual employees
+  departmentId      String?
+  designationId     String?
+  joiningDate       DateTime?     // Employment start date
+  confirmationDate  DateTime?     // Probation confirmation
+  hireDate          DateTime?     // Deprecated - use joiningDate
+  exitDate          DateTime?     // Employment end date
+  employmentStatus  EmploymentStatus @default(ACTIVE)
+  salary            Decimal?      @db.Decimal(12, 2)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -183,6 +200,8 @@ model User {
   attendanceRegularizations         AttendanceRegularization[]
   reviewedAttendanceRegularizations AttendanceRegularization[] @relation("ReviewedBy")
   leaveBalances                     LeaveBalance[]
+  contact                           Contact?
+  address                           Address?
 
   @@unique([tenantId, email])
   @@unique([tenantId, employeeCode]) // Only enforced when employeeCode is set
@@ -190,6 +209,54 @@ model User {
   @@index([tenantId])
   @@index([roleId])
   @@index([departmentId, tenantId])
+}
+
+model Contact {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  email           String
+  isEmailVerified Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mobileNumber    MobileNumber?
+
+  @@index([userId])
+}
+
+model MobileNumber {
+  id          String   @id @default(cuid())
+  contactId   String   @unique
+  dialCode    String
+  iso2        String
+  country     String
+  number      String
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  street    String?
+  city      String?
+  state     String?
+  stateIso2 String?
+  country   String?
+  iso2      String?
+  zipCode   String?
+  latitude  Decimal? @db.Decimal(10, 8)
+  longitude Decimal? @db.Decimal(11, 8)
+  geo       Json? // GeoJSON: { type: 'Point', coordinates: [longitude, latitude] }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model RefreshToken {

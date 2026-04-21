@@ -36,7 +36,6 @@ export class EmployeeService {
       email: dto.email,
       firstName: dto.firstName,
       lastName: dto.lastName,
-      phone: dto.phone,
       employeeCode,
       departmentId: dto.departmentId,
       roleId: dto.roleId,
@@ -106,7 +105,6 @@ export class EmployeeService {
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
-    if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.designation !== undefined) updateData.designation = dto.designation;
     if (dto.departmentId !== undefined) updateData.departmentId = dto.departmentId;
     if (dto.roleId !== undefined) updateData.roleId = dto.roleId;

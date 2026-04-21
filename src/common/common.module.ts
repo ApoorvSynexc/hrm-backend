@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { I18nService } from './services/i18n.service.js';
+import { GeospatialService } from './services/geospatial.service.js';
 import { LoggingInterceptor } from './interceptors/logging.interceptor.js';
 import { TransformInterceptor } from './interceptors/transform.interceptor.js';
 import { CounterRepository } from './repositories/counter.repository.js';
@@ -9,6 +10,7 @@ import { CounterRepository } from './repositories/counter.repository.js';
 @Module({
   providers: [
     I18nService,
+    GeospatialService,
     CounterRepository,
     {
       provide: APP_INTERCEPTOR,
@@ -19,6 +21,6 @@ import { CounterRepository } from './repositories/counter.repository.js';
       useClass: TransformInterceptor,
     },
   ],
-  exports: [I18nService, CounterRepository],
+  exports: [I18nService, GeospatialService, CounterRepository],
 })
 export class CommonModule {}

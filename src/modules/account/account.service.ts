@@ -53,7 +53,6 @@ export class AccountService {
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
-        phone: dto.phone,
       },
     );
   }

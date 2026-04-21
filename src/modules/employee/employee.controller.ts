@@ -2,11 +2,9 @@ import {
   Controller,
   Post,
   Get,
-  Patch,
   Delete,
   Body,
   Query,
-  Param,
   HttpCode,
   HttpStatus,
   Put,
@@ -92,12 +90,12 @@ export class EmployeeController {
    * Update an employee
    * PATCH /employees/:id
    */
-  @Put(':id')
+  @Put()
   @HttpCode(HttpStatus.OK)
   @Permissions('update:employee')
   async update(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Query('id') id: string,
     @Body() dto: UpdateEmployeeDto,
   ) {
     const employee = await this.employeeService.updateEmployee(tenantId, id, dto);

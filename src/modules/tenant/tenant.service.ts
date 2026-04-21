@@ -172,12 +172,17 @@ export class TenantService {
           DEFAULT_ROLE_PERMISSIONS[roleDefinition.name as keyof typeof DEFAULT_ROLE_PERMISSIONS];
 
         if (defaultPermsForRole && Array.isArray(defaultPermsForRole)) {
-          // For non-ADMIN roles, filter out role and permission management
+          // For non-ADMIN roles, filter out create/update/delete/manage for role and permission
           const permissionsToAssign = roleDefinition.name === 'ADMIN'
             ? defaultPermsForRole
-            : defaultPermsForRole.filter(
-                (perm) => !perm.includes(':role') && !perm.includes(':permission')
-              );
+            : defaultPermsForRole.filter((perm) => {
+                // Allow read permissions for role and permission
+                if (perm === 'read:role' || perm === 'read:permission') {
+                  return true;
+                }
+                // Block all other role and permission management
+                return !perm.includes(':role') && !perm.includes(':permission');
+              });
 
           for (const permKey of permissionsToAssign) {
             const permissionId = globalPermissionMap.get(permKey);

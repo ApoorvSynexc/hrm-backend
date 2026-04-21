@@ -134,6 +134,7 @@ model WorkingSchedule {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users            User[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -180,6 +181,7 @@ model User {
   employeeCode      String?       // Only for actual employees
   departmentId      String?
   designationId     String?
+  workingScheduleId String?
   joiningDate       DateTime?     // Employment start date
   confirmationDate  DateTime?     // Probation confirmation
   hireDate          DateTime?     // Deprecated - use joiningDate
@@ -194,6 +196,7 @@ model User {
   role                              Role?                      @relation(fields: [roleId], references: [id], onDelete: NoAction)
   department                        Department?                @relation(fields: [departmentId, tenantId], references: [id, tenantId], onDelete: NoAction)
   designation                       Designation?               @relation(fields: [designationId], references: [id], onDelete: NoAction)
+  workingSchedule                   WorkingSchedule?           @relation(fields: [workingScheduleId], references: [id], onDelete: NoAction)
   refreshTokens                     RefreshToken[]
   leaves                            Leave[]
   payrolls                          Payroll[]
@@ -210,6 +213,7 @@ model User {
   @@index([tenantId])
   @@index([roleId])
   @@index([departmentId, tenantId])
+  @@index([workingScheduleId])
 }
 
 model Contact {

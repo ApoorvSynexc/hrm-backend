@@ -30,6 +30,10 @@ export class CreateEmployeeDto {
 
   @IsString()
   @IsOptional()
+  workingScheduleId?: string;
+
+  @IsString()
+  @IsOptional()
   roleId?: string;
 
   @IsDateString()

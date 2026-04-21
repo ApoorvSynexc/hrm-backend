@@ -21,6 +21,10 @@ export class UpdateEmployeeDto {
 
   @IsString()
   @IsOptional()
+  workingScheduleId?: string;
+
+  @IsString()
+  @IsOptional()
   departmentId?: string;
 
   @IsString()

@@ -16,21 +16,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
 @Controller('role')
 export class RoleController {
-  constructor(private roleService: RoleService) {}
-
-  /**
-   * Get permissions assigned to a role
-   * GET /role/permissions?roleId=xxx
-   */
-  @Get('permissions')
-  @Permissions('read:permission')
-  async getRolePermissions(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('roleId') roleId: string,
-  ) {
-    const permissions = await this.roleService.getRolePermissions(tenantId, roleId);
-    return { message: 'common.fetched', data: permissions };
-  }
+  constructor(private roleService: RoleService) { }
 
   /**
    * Create a new role
@@ -139,5 +125,19 @@ export class RoleController {
   ) {
     await this.roleService.removePermission(tenantId, roleId, permId);
     return { message: 'common.deleted', data: null };
+  }
+
+  /**
+  * Get permissions assigned to a role
+  * GET /role/permissions?roleId=xxx
+  */
+  @Get('permissions')
+  @Permissions('read:permission')
+  async getRolePermissions(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('roleId') roleId: string,
+  ) {
+    const permissions = await this.roleService.getRolePermissions(tenantId, roleId);
+    return { message: 'common.fetched', data: permissions };
   }
 }

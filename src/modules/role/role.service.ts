@@ -32,7 +32,8 @@ export class RoleService {
   }
 
   async getRoles(tenantId: string) {
-    return await this.roleRepository.findManyByTenant(tenantId);
+    const roles = await this.roleRepository.findManyByTenant(tenantId);
+    return roles.filter(role => role.name !== 'ADMIN');
   }
 
   async getRoleById(tenantId: string, id: string) {
@@ -52,9 +53,9 @@ export class RoleService {
   ) {
     const role = await this.getRoleById(tenantId, id);
 
-    // Block updating system roles except for description
-    if (role.isSystem && dto.name && dto.name !== role.name) {
-      throw new BadRequestException('Cannot update name of system role');
+    // Block updating system roles entirely
+    if (role.isSystem) {
+      throw new BadRequestException('Cannot update system role');
     }
 
     // Check name uniqueness if name is being changed
@@ -106,6 +107,11 @@ export class RoleService {
     // Check role exists
     const role = await this.getRoleById(tenantId, roleId);
 
+    // Block assigning permissions to system roles
+    if (role.isSystem) {
+      throw new BadRequestException('Cannot modify permissions for system role');
+    }
+
     // Check permission exists
     const permission = await this.permissionRepository.findMany({
       id: dto.permissionId,
@@ -141,7 +147,12 @@ export class RoleService {
     permissionId: string,
   ) {
     // Check role exists
-    await this.getRoleById(tenantId, roleId);
+    const role = await this.getRoleById(tenantId, roleId);
+
+    // Block removing permissions from system roles
+    if (role.isSystem) {
+      throw new BadRequestException('Cannot modify permissions for system role');
+    }
 
     // Check assignment exists
     const existing = await this.rolePermissionRepository.findByRoleAndPermission(

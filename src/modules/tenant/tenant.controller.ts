@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { TenantService } from './tenant.service.js';
 import { CreateTenantDto, UpdateTenantDto } from './dto/index.js';
@@ -42,10 +43,13 @@ export class TenantController {
     return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 
-  @Patch()
+  @Put()
   @HttpCode(HttpStatus.OK)
   @Permissions('manage:tenant')
-  update(@CurrentUser('tenantId') tenantId: string, @Body() dto: UpdateTenantDto) {
+  update(
+     @Query('id') tenantId: string,
+    @Body() dto: UpdateTenantDto
+  ) {
     return this.tenantService.updateTenant(tenantId, dto);
   }
 

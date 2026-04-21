@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { RoleRepository, PermissionRepository, RolePermissionRepository } from './repositories/index.js';
-import { CreateRoleDto, UpdateRoleDto, AssignPermissionDto } from './dto/index.js';
+import { CreateRoleDto, UpdateRoleDto, AssignPermissionDto, SetRolePermissionsDto } from './dto/index.js';
 
 @Injectable()
 export class RoleService {
@@ -8,6 +9,7 @@ export class RoleService {
     private roleRepository: RoleRepository,
     private permissionRepository: PermissionRepository,
     private rolePermissionRepository: RolePermissionRepository,
+    private prisma: PrismaService,
   ) {}
 
   async createRole(tenantId: string, dto: CreateRoleDto) {
@@ -169,5 +171,55 @@ export class RoleService {
       roleId,
       permissionId,
     );
+  }
+
+  /**
+   * Set all permissions for a role (replaces existing)
+   */
+  async setRolePermissions(tenantId: string, dto: SetRolePermissionsDto) {
+    // Verify role exists
+    const role = await this.getRoleById(tenantId, dto.roleId);
+
+    // Block modifying system roles
+    if (role.isSystem) {
+      throw new BadRequestException('Cannot modify permissions for system role');
+    }
+
+    // Verify all permissions exist
+    for (const permissionId of dto.permissionIds) {
+      const permission = await this.permissionRepository.findMany({
+        id: permissionId,
+      });
+
+      if (!permission || permission.length === 0) {
+        throw new NotFoundException(`Permission not found: ${permissionId}`);
+      }
+    }
+
+    // Run in transaction: delete old and create new
+    return await this.prisma.$transaction(async (tx) => {
+      // Delete all existing permissions for this role
+      await tx.rolePermission.deleteMany({
+        where: {
+          tenantId,
+          roleId: dto.roleId,
+        },
+      });
+
+      // Create new permissions
+      const rolePermissions = await Promise.all(
+        dto.permissionIds.map((permissionId) =>
+          tx.rolePermission.create({
+            data: {
+              tenantId,
+              roleId: dto.roleId,
+              permissionId,
+            },
+          }),
+        ),
+      );
+
+      return rolePermissions;
+    });
   }
 }

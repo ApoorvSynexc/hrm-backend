@@ -8,9 +8,10 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Put,
 } from '@nestjs/common';
 import { RoleService } from './role.service.js';
-import { CreateRoleDto, UpdateRoleDto, AssignPermissionDto } from './dto/index.js';
+import { CreateRoleDto, UpdateRoleDto, AssignPermissionDto, SetRolePermissionsDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
@@ -92,49 +93,28 @@ export class RoleController {
   }
 
   /**
-   * Assign a permission to a role
-   * POST /roles/permissions?roleId=xxx
+   * Get all permissions
+   * GET /role/permissions
    */
-  @Post('permissions')
-  @HttpCode(HttpStatus.CREATED)
-  @Permissions('manage:role')
-  async assignPermission(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('roleId') roleId: string,
-    @Body() dto: AssignPermissionDto,
-  ) {
-    const rolePermission = await this.roleService.assignPermission(
-      tenantId,
-      roleId,
-      dto,
-    );
-    return { message: 'common.created', data: rolePermission };
-  }
-
-  /**
-   * Remove a permission from a role
-   * DELETE /roles/permissions?roleId=xxx&permId=xxx
-   */
-  @Delete('permissions')
-  @HttpCode(HttpStatus.OK)
-  @Permissions('manage:role')
-  async removePermission(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('roleId') roleId: string,
-    @Query('permId') permId: string,
-  ) {
-    await this.roleService.removePermission(tenantId, roleId, permId);
-    return { message: 'common.deleted', data: null };
-  }
-
-  /**
-  * Get all permissions
-  * GET /role/permissions
-  */
-  @Get('permissions')
+  @Get('permission/list')
   @Permissions('read:permission')
   async getRolePermissions() {
     const permissions = await this.roleService.getRolePermissions();
     return { message: 'common.fetched', data: permissions };
+  }
+
+  /**
+   * Set all permissions for a role (bulk update)
+   * PATCH /role/permissions
+   */
+  @Put('permission')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('manage:role')
+  async setRolePermissions(
+    @CurrentUser('tenantId') tenantId: string,
+    @Body() dto: SetRolePermissionsDto,
+  ) {
+    const rolePermissions = await this.roleService.setRolePermissions(tenantId, dto);
+    return { message: 'common.updated', data: rolePermissions };
   }
 }

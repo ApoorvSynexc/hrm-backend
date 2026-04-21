@@ -12,10 +12,10 @@ export class RoleService {
 
   async createRole(tenantId: string, dto: CreateRoleDto) {
     // Check if role name already exists for this tenant
-    const existingRole = await this.roleRepository.findFirstByTenantAndName(
+    const existingRole = await this.roleRepository.find({
       tenantId,
-      dto.name,
-    );
+      name: dto.name,
+    });
 
     if (existingRole) {
       throw new BadRequestException(
@@ -32,12 +32,12 @@ export class RoleService {
   }
 
   async getRoles(tenantId: string) {
-    const roles = await this.roleRepository.findManyByTenant(tenantId);
+    const roles = await this.roleRepository.findAll({ tenantId });
     return roles.filter(role => role.name !== 'ADMIN');
   }
 
   async getRoleById(tenantId: string, id: string) {
-    const role = await this.roleRepository.findByTenantAndId(tenantId, id);
+    const role = await this.roleRepository.find({ id, tenantId });
 
     if (!role) {
       throw new NotFoundException('Role not found');
@@ -60,10 +60,10 @@ export class RoleService {
 
     // Check name uniqueness if name is being changed
     if (dto.name && dto.name !== role.name) {
-      const existingRole = await this.roleRepository.findFirstByTenantAndName(
+      const existingRole = await this.roleRepository.find({
         tenantId,
-        dto.name,
-      );
+        name: dto.name,
+      });
 
       if (existingRole) {
         throw new BadRequestException(
@@ -94,7 +94,6 @@ export class RoleService {
   }
 
   async getRolePermissions(tenantId: string, roleId: string) {
-    const role = await this.getRoleById(tenantId, roleId);
     const rolePermissions = await this.rolePermissionRepository.findManyByRole(tenantId, roleId);
     return rolePermissions.map(rp => rp.permission);
   }

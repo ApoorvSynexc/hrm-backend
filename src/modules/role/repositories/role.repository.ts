@@ -14,11 +14,36 @@ export class RoleRepository {
   }
 
   /**
-   * Find a role by tenant and name (excludes deleted)
+   * Find a single role by flexible where clause (excludes deleted)
    */
-  async findFirstByTenantAndName(tenantId: string | null, name: string, tx?: TX) {
+  async find(where: Record<string, any>, tx?: TX) {
     return this.client(tx).role.findFirst({
-      where: { tenantId, name, status: { not: Status.DELETED } },
+      where: {
+        status: { not: Status.DELETED },
+        ...where,
+      },
+      include: {
+        rolePermissions: {
+          include: { permission: true },
+        },
+        _count: { select: { rolePermissions: true } },
+      },
+    });
+  }
+
+  /**
+   * Find all roles (excluding deleted) with flexible where clause
+   */
+  async findAll(where?: Record<string, any>, tx?: TX) {
+    return this.client(tx).role.findMany({
+      where: {
+        status: { not: Status.DELETED },
+        ...(where || {}),
+      },
+      include: {
+        _count: { select: { rolePermissions: true } },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -28,33 +53,6 @@ export class RoleRepository {
   async create(data: any, tx?: TX) {
     return this.client(tx).role.create({
       data,
-    });
-  }
-
-  /**
-   * Find many roles for a tenant
-   */
-  async findManyByTenant(tenantId: string, tx?: TX) {
-    return this.client(tx).role.findMany({
-      where: { tenantId, status: 'ACTIVE' },
-      include: {
-        _count: { select: { rolePermissions: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  /**
-   * Find a role by tenant and ID with permissions (excludes deleted)
-   */
-  async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
-    return this.client(tx).role.findFirst({
-      where: { id, tenantId, status: { not: Status.DELETED } },
-      include: {
-        rolePermissions: {
-          include: { permission: true },
-        },
-      },
     });
   }
 
@@ -69,11 +67,21 @@ export class RoleRepository {
   }
 
   /**
-   * Delete a role
+   * Hard delete a role
    */
   async delete(id: string, tx?: TX) {
     return this.client(tx).role.delete({
       where: { id },
+    });
+  }
+
+  /**
+   * Soft delete (set status to DELETED)
+   */
+  async softDelete(id: string, tx?: TX) {
+    return this.client(tx).role.update({
+      where: { id },
+      data: { status: 'DELETED' },
     });
   }
 }

@@ -199,9 +199,8 @@ export class TenantService {
       }
 
       // 6. Create initial admin user
-      const adminRole = await this.roleRepository.findFirstByTenantAndName(
-        newTenant.id,
-        'ADMIN',
+      const adminRole = await this.roleRepository.find(
+        { tenantId: newTenant.id, name: 'ADMIN' },
         tx,
       );
 

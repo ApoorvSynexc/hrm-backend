@@ -177,7 +177,7 @@ export class TenantService {
             ? defaultPermsForRole
             : defaultPermsForRole.filter((perm) => {
                 // Allow read permissions for role and permission
-                if (perm === 'read:role' || perm === 'read:permission') {
+                if (perm === 'read:role') {
                   return true;
                 }
                 // Block all other role and permission management

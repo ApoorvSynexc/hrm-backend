@@ -3,13 +3,17 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { EmployeeRepository } from './repositories/employee.repository.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
 import { Status, EmploymentStatus } from '../../../generated/prisma/client.js';
 
 @Injectable()
 export class EmployeeService {
-  constructor(private employeeRepository: EmployeeRepository) {}
+  constructor(
+    private employeeRepository: EmployeeRepository,
+    private prisma: PrismaService,
+  ) {}
 
   /**
    * Create a new employee
@@ -27,6 +31,28 @@ export class EmployeeService {
       );
     }
 
+    // Verify department belongs to tenant
+    const department = await this.prisma.department.findUnique({
+      where: { id: dto.departmentId },
+    });
+
+    if (!department || department.tenantId !== tenantId) {
+      throw new BadRequestException(
+        'Department does not exist or does not belong to this tenant',
+      );
+    }
+
+    // Verify designation belongs to tenant
+    const designation = await this.prisma.designation.findUnique({
+      where: { id: dto.designationId },
+    });
+
+    if (!designation || designation.tenantId !== tenantId) {
+      throw new BadRequestException(
+        'Designation does not exist or does not belong to this tenant',
+      );
+    }
+
     // Auto-generate employee code
     const employeeCode = await this.employeeRepository.getNextEmployeeCode(tenantId, 'employee');
 
@@ -38,8 +64,8 @@ export class EmployeeService {
       lastName: dto.lastName,
       employeeCode,
       departmentId: dto.departmentId,
+      designationId: dto.designationId,
       roleId: dto.roleId,
-      designation: dto.designation,
       hireDate: new Date(dto.hireDate),
       salary: dto.salary ? parseFloat(dto.salary) : null,
       employmentStatus: EmploymentStatus.ACTIVE,
@@ -100,12 +126,38 @@ export class EmployeeService {
       }
     }
 
+    // Verify department belongs to tenant if being changed
+    if (dto.departmentId !== undefined) {
+      const department = await this.prisma.department.findUnique({
+        where: { id: dto.departmentId },
+      });
+
+      if (!department || department.tenantId !== tenantId) {
+        throw new BadRequestException(
+          'Department does not exist or does not belong to this tenant',
+        );
+      }
+    }
+
+    // Verify designation belongs to tenant if being changed
+    if (dto.designationId !== undefined) {
+      const designation = await this.prisma.designation.findUnique({
+        where: { id: dto.designationId },
+      });
+
+      if (!designation || designation.tenantId !== tenantId) {
+        throw new BadRequestException(
+          'Designation does not exist or does not belong to this tenant',
+        );
+      }
+    }
+
     // Build update data
     const updateData: any = {};
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
     if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
-    if (dto.designation !== undefined) updateData.designation = dto.designation;
+    if (dto.designationId !== undefined) updateData.designationId = dto.designationId;
     if (dto.departmentId !== undefined) updateData.departmentId = dto.departmentId;
     if (dto.roleId !== undefined) updateData.roleId = dto.roleId;
     if (dto.hireDate !== undefined) updateData.hireDate = new Date(dto.hireDate);

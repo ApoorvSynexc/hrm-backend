@@ -16,22 +16,16 @@ export class CreateEmployeeDto {
   lastName: string;
 
   @IsString()
-  @IsOptional()
-  @MaxLength(50)
-  employeeCode?: string;
-
-  @IsString()
   @IsNotEmpty()
   departmentId: string;
 
   @IsString()
-  @IsOptional()
-  roleId?: string;
+  @IsNotEmpty()
+  designationId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  designation: string;
+  @IsOptional()
+  roleId?: string;
 
   @IsDateString()
   @IsNotEmpty()

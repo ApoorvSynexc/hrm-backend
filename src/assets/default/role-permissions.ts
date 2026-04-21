@@ -76,6 +76,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
   ],
 
   HR: [
+    // Role Management (Read-only)
+    'read:role',
+
     // Employee Management
     'create:employee',
     'read:employee',

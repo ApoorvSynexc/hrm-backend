@@ -108,12 +108,12 @@ export class EmployeeController {
    * Delete an employee (soft delete)
    * DELETE /employees/:id
    */
-  @Delete(':id')
+  @Delete()
   @HttpCode(HttpStatus.OK)
   @Permissions('delete:employee')
   async delete(
     @CurrentUser('tenantId') tenantId: string,
-    @Param('id') id: string,
+    @Query('id') id: string,
   ) {
     const employee = await this.employeeService.deleteEmployee(tenantId, id);
     return { message: 'common.deleted', data: employee };

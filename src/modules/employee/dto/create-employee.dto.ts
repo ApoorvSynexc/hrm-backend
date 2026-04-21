@@ -1,9 +1,14 @@
-import { IsEmail, IsString, IsNotEmpty, MaxLength, IsDateString, IsOptional, IsDecimal } from 'class-validator';
+import { IsEmail, IsString, IsNotEmpty, MaxLength, IsDateString, IsOptional, IsDecimal, MinLength } from 'class-validator';
 
 export class CreateEmployeeDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  password!: string;
 
   @IsString()
   @IsNotEmpty()

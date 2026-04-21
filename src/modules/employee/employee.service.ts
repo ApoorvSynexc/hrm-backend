@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import bcrypt from 'bcrypt';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
 import { EmployeeRepository } from './repositories/employee.repository.js';
 import { CreateEmployeeDto, UpdateEmployeeDto } from './dto/index.js';
@@ -56,6 +57,9 @@ export class EmployeeService {
     // Auto-generate employee code
     const employeeCode = await this.employeeRepository.getNextEmployeeCode(tenantId, 'employee');
 
+    // Hash password
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
     // Create employee
     return await this.employeeRepository.create({
       tenantId,
@@ -68,9 +72,9 @@ export class EmployeeService {
       roleId: dto.roleId,
       hireDate: new Date(dto.hireDate),
       salary: dto.salary ? parseFloat(dto.salary) : null,
+      passwordHash,
       employmentStatus: EmploymentStatus.ACTIVE,
       status: Status.ACTIVE,
-      passwordHash: '',
     });
   }
 

@@ -4,8 +4,9 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -203,8 +204,8 @@ model User {
   contact                           Contact?
   address                           Address?
 
-  @@unique([tenantId, email])
-  @@unique([tenantId, employeeCode]) // Only enforced when employeeCode is set
+  @@unique([tenantId, email], where: { status: { not: "DELETED" } })
+  @@unique([tenantId, employeeCode], where: { status: { not: "DELETED" } }) // Only enforced when employeeCode is set
   @@unique([id, tenantId])
   @@index([tenantId])
   @@index([roleId])

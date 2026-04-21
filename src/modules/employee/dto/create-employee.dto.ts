@@ -17,11 +17,6 @@ export class CreateEmployeeDto {
 
   @IsString()
   @IsOptional()
-  @MaxLength(20)
-  phone?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(50)
   employeeCode?: string;
 

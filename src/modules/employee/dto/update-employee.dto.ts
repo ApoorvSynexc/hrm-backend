@@ -17,11 +17,6 @@ export class UpdateEmployeeDto {
 
   @IsString()
   @IsOptional()
-  @MaxLength(20)
-  phone?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(100)
   designation?: string;
 

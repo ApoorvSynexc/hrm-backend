@@ -29,10 +29,6 @@ export class CreateUserDto {
 
   @IsString()
   @IsOptional()
-  phone?: string;
-
-  @IsString()
-  @IsOptional()
   roleId?: string;
 
   // Employee-specific fields (optional)

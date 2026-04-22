@@ -11,6 +11,7 @@ async function bootstrap() {
   const allowedOrigins = [
     'http://localhost:5173',
     'https://hrm-frontend.vercel.app',
+    'http://3.110.44.44:5173',
   ];
 
   // Enable CORS for frontend development

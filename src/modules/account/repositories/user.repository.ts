@@ -47,6 +47,11 @@ export class UserRepository {
           },
         },
         department: true,
+        contact: {
+          include: {
+            mobileNumber: true,
+          },
+        },
       },
     });
   }
@@ -141,7 +146,15 @@ export class UserRepository {
     return this.client(tx).user.update({
       where: where as any,
       data,
-      include: { role: true, department: true },
+      include: {
+        role: true,
+        department: true,
+        contact: {
+          include: {
+            mobileNumber: true,
+          },
+        },
+      },
     });
   }
 

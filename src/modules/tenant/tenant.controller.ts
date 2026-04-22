@@ -60,4 +60,10 @@ export class TenantController {
     await this.tenantService.deleteTenant(tenantId);
     return { message: 'common.deleted' };
   }
+
+  @Get('config')
+  async getConfig(@CurrentUser() user: any) {
+    // Returns tenant name, logo, office location, and attendance policy info
+    return this.tenantService.getConfig(user.tenantId);
+  }
 }

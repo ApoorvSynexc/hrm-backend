@@ -133,6 +133,16 @@ export class TenantService {
         });
         newTenant.slug = uniqueSlug;
 
+        // 4. Create default FLEXIBLE attendance policy for the new tenant
+        await tx.attendancePolicy.create({
+          data: {
+            tenantId: newTenant.id,
+            policyType: 'FLEXIBLE',
+            radiusMeters: 100,
+            status: 'ACTIVE',
+          },
+        });
+
       // 2. Get tenant roles from constants (exclude SUPER_ADMIN which is global-only)
       const tenantRolesToCreate = DEFAULT_ROLES.filter(
         (role) => role.name !== 'SUPER_ADMIN',
@@ -412,11 +422,64 @@ export class TenantService {
         where: { tenantId },
       });
 
+      // Delete attendance policies
+      await tx.attendancePolicy.deleteMany({
+        where: { tenantId },
+      });
+
       // Soft delete the tenant itself
       await tx.tenant.update({
         where: { id: tenantId },
         data: { status: 'DELETED' },
       });
     });
+  }
+
+  /**
+   * Get tenant configuration (name, logo, office location, attendance policy)
+   */
+  async getConfig(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        id: true,
+        name: true,
+        logo: true,
+        officeLatitude: true,
+        officeLogitude: true,
+        officeAddress: true,
+      },
+    });
+
+    if (!tenant) {
+      throw new BadRequestException('Tenant not found');
+    }
+
+    // Fetch attendance policy
+    const policy = await this.prisma.attendancePolicy.findUnique({
+      where: { tenantId },
+    });
+
+    return {
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        logo: tenant.logo,
+        officeLocation: {
+          latitude: tenant.officeLatitude,
+          longitude: tenant.officeLogitude,
+          address: tenant.officeAddress,
+        },
+      },
+      attendancePolicy: policy
+        ? {
+            policyType: policy.policyType,
+            radiusMeters: policy.radiusMeters,
+            ipRanges: policy.ipRanges,
+            wifiSsids: policy.wifiSsids,
+            status: policy.status,
+          }
+        : null,
+    };
   }
 }

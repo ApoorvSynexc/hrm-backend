@@ -37,8 +37,6 @@ export class AccountController {
     @CurrentUser() current: JwtPayload,
     @Body() dto: UpdateUserDto,
   ) {
-    console.log({current});
-    
     const user = await this.accountService.updateUser(current.sub, dto);
     return { message: 'common.updated', data: user };
   }

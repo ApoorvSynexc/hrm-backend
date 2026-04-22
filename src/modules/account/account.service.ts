@@ -65,6 +65,7 @@ export class AccountService {
       const updatedUser = await this.userRepository.update(
         { id: userId },
         updateData,
+        tx,
       );
 
       // Update contact if provided
@@ -113,7 +114,6 @@ export class AccountService {
         let mobileNumber = await tx.mobileNumber.findUnique({
           where: { contactId: contactData!.id },
         });
-
         if (mobileNumber) {
           await tx.mobileNumber.update({
             where: { id: mobileNumber.id },

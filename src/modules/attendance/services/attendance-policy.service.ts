@@ -33,13 +33,14 @@ export class AttendancePolicyService {
    * Create or update attendance policy for a tenant
    */
   async upsertPolicy(tenantId: string, dto: CreateAttendancePolicyDto) {
+    const data = this.sanitizePolicy(dto);
     return await this.prisma.attendancePolicy.upsert({
       where: { tenantId },
       create: {
         tenantId,
-        ...dto,
+        ...data,
       },
-      update: dto,
+      update: data,
     });
   }
 
@@ -48,11 +49,25 @@ export class AttendancePolicyService {
    */
   async updatePolicy(tenantId: string, dto: UpdateAttendancePolicyDto) {
     const policy = await this.getPolicyByTenantId(tenantId);
+    const data = this.sanitizePolicy(dto);
 
     return await this.prisma.attendancePolicy.update({
       where: { id: policy.id },
-      data: dto,
+      data,
     });
+  }
+
+  /**
+   * Convert DTO objects to plain JSON for Prisma
+   */
+  private sanitizePolicy(dto: any) {
+    const sanitized: any = { ...dto };
+
+    if (sanitized.ipRanges && Array.isArray(sanitized.ipRanges)) {
+      sanitized.ipRanges = JSON.parse(JSON.stringify(sanitized.ipRanges));
+    }
+
+    return sanitized;
   }
 
   /**

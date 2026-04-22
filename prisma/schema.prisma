@@ -58,6 +58,11 @@ enum RegularizationStatus {
   CANCELLED
 }
 
+enum AttendancePolicyType {
+  STRICT
+  FLEXIBLE
+}
+
 enum HolidayType {
   PUBLIC
   FESTIVAL
@@ -101,6 +106,12 @@ model Tenant {
   slug                      String?                    @unique
   logo                      String? // URL to logo image
   timezone                  String                     @default("UTC") // e.g., "Asia/Kolkata", "America/New_York"
+
+  // Office Location
+  officeLatitude            Decimal?                   @db.Decimal(10, 8)
+  officeLogitude            Decimal?                   @db.Decimal(11, 8)
+  officeAddress             String?
+
   status                    Status                     @default(ACTIVE)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
@@ -119,6 +130,7 @@ model Tenant {
   holidays                  Holiday[]
   leaveBalances             LeaveBalance[]
   counters                  Counter[]
+  attendancePolicies        AttendancePolicy[]
 }
 
 model WorkingSchedule {
@@ -402,19 +414,27 @@ model Payroll {
 }
 
 model Attendance {
-  id              String                     @id @default(cuid())
-  tenantId        String
-  userId          String
-  date            DateTime
-  checkIn         DateTime?
-  checkOut        DateTime?
-  totalMinutes    Int?
-  status          AttendanceStatus
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
-  tenant          Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user            User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  regularizations AttendanceRegularization[]
+  id                  String                     @id @default(cuid())
+  tenantId            String
+  userId              String
+  date                DateTime
+  checkIn             DateTime?
+  checkOut            DateTime?
+  checkInIp           String?
+  checkOutIp          String?
+  checkInLatitude     Decimal?                   @db.Decimal(10, 8)
+  checkInLongitude    Decimal?                   @db.Decimal(11, 8)
+  checkOutLatitude    Decimal?                   @db.Decimal(10, 8)
+  checkOutLongitude   Decimal?                   @db.Decimal(11, 8)
+  checkInMethod       String? // "IP_RANGE", "GEOLOCATION", "WIFI_SSID"
+  checkOutMethod      String?
+  totalMinutes        Int?
+  status              AttendanceStatus
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  tenant              Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  regularizations     AttendanceRegularization[]
 
   @@unique([tenantId, userId, date])
   @@unique([id, tenantId])
@@ -497,5 +517,21 @@ model Counter {
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, name], name: "uk_counter_tenant_name")
+  @@index([tenantId])
+}
+
+model AttendancePolicy {
+  id              String                   @id @default(cuid())
+  tenantId        String
+  policyType      AttendancePolicyType     @default(FLEXIBLE)
+  ipRanges        Json?                    // Array of {start, end} - for multiple routers: [{start: "192.168.1.0", end: "192.168.1.255"}, {start: "192.168.2.0", end: "192.168.2.255"}]
+  radiusMeters    Int                      @default(100) // Geolocation radius in meters
+  wifiSsids       String[]                 // Array of office WiFi SSIDs: ["Office-Main", "Office-Guest", "Office-5G"]
+  status          Status                   @default(ACTIVE)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  tenant          Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId])
   @@index([tenantId])
 }

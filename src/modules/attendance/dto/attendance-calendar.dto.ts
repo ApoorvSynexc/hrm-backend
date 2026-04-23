@@ -1,13 +1,16 @@
-import { IsOptional, IsNumber, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsOptional, IsInt, Min, Max } from 'class-validator';
 
 export class AttendanceCalendarQueryDto {
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
   @IsOptional()
   @Min(1)
   @Max(12)
   month?: number;
 
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
   @IsOptional()
   @Min(1900)
   year?: number;

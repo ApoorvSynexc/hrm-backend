@@ -58,6 +58,11 @@ CREATE TABLE "WorkingSchedule" (
     "endTime" TEXT NOT NULL,
     "breakDuration" INTEGER NOT NULL DEFAULT 0,
     "workingHoursPerDay" INTEGER NOT NULL DEFAULT 480,
+    "fullDayMinimumMinutes" INTEGER NOT NULL DEFAULT 480,
+    "halfDayMinimumMinutes" INTEGER NOT NULL DEFAULT 240,
+    "lateMarkAfter" TEXT,
+    "graceTimeInMinutes" INTEGER NOT NULL DEFAULT 0,
+    "timezone" TEXT NOT NULL DEFAULT 'UTC',
     "status" "Status" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -277,8 +282,27 @@ CREATE TABLE "Attendance" (
     "tenantId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
-    "checkIn" TIMESTAMP(3),
+    "firstCheckIn" TIMESTAMP(3),
+    "lastCheckOut" TIMESTAMP(3),
+    "totalMinutes" INTEGER,
+    "status" "AttendanceStatus" NOT NULL,
+    "isFinalStatus" BOOLEAN NOT NULL DEFAULT false,
+    "isLate" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Attendance_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AttendanceLog" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "attendanceId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "checkIn" TIMESTAMP(3) NOT NULL,
     "checkOut" TIMESTAMP(3),
+    "durationMinutes" INTEGER,
     "checkInIp" TEXT,
     "checkOutIp" TEXT,
     "checkInLatitude" DECIMAL(10,8),
@@ -287,12 +311,10 @@ CREATE TABLE "Attendance" (
     "checkOutLongitude" DECIMAL(11,8),
     "checkInMethod" TEXT,
     "checkOutMethod" TEXT,
-    "totalMinutes" INTEGER,
-    "status" "AttendanceStatus" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Attendance_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AttendanceLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -360,11 +382,24 @@ CREATE TABLE "Counter" (
 CREATE TABLE "AttendancePolicy" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "scopeLevel" TEXT NOT NULL DEFAULT 'TENANT',
+    "departmentId" TEXT,
+    "roleId" TEXT,
+    "userId" TEXT,
+    "teamId" TEXT,
+    "priority" INTEGER NOT NULL DEFAULT 100,
     "policyType" "AttendancePolicyType" NOT NULL DEFAULT 'FLEXIBLE',
     "ipRanges" JSONB,
     "radiusMeters" INTEGER NOT NULL DEFAULT 100,
     "wifiSsids" TEXT[],
+    "validFrom" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "validUntil" TIMESTAMP(3),
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "status" "Status" NOT NULL DEFAULT 'ACTIVE',
+    "createdBy" TEXT,
+    "updatedBy" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -507,10 +542,25 @@ CREATE INDEX "Attendance_tenantId_date_idx" ON "Attendance"("tenantId", "date");
 CREATE INDEX "Attendance_tenantId_status_idx" ON "Attendance"("tenantId", "status");
 
 -- CreateIndex
+CREATE INDEX "Attendance_tenantId_isFinalStatus_idx" ON "Attendance"("tenantId", "isFinalStatus");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Attendance_tenantId_userId_date_key" ON "Attendance"("tenantId", "userId", "date");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Attendance_id_tenantId_key" ON "Attendance"("id", "tenantId");
+
+-- CreateIndex
+CREATE INDEX "AttendanceLog_attendanceId_idx" ON "AttendanceLog"("attendanceId");
+
+-- CreateIndex
+CREATE INDEX "AttendanceLog_tenantId_idx" ON "AttendanceLog"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "AttendanceLog_userId_idx" ON "AttendanceLog"("userId");
+
+-- CreateIndex
+CREATE INDEX "AttendanceLog_tenantId_checkIn_idx" ON "AttendanceLog"("tenantId", "checkIn");
 
 -- CreateIndex
 CREATE INDEX "AttendanceRegularization_tenantId_idx" ON "AttendanceRegularization"("tenantId");
@@ -561,7 +611,13 @@ CREATE UNIQUE INDEX "Counter_tenantId_name_key" ON "Counter"("tenantId", "name")
 CREATE INDEX "AttendancePolicy_tenantId_idx" ON "AttendancePolicy"("tenantId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AttendancePolicy_tenantId_key" ON "AttendancePolicy"("tenantId");
+CREATE INDEX "AttendancePolicy_tenantId_scopeLevel_idx" ON "AttendancePolicy"("tenantId", "scopeLevel");
+
+-- CreateIndex
+CREATE INDEX "AttendancePolicy_tenantId_isActive_validFrom_idx" ON "AttendancePolicy"("tenantId", "isActive", "validFrom");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AttendancePolicy_tenantId_scopeLevel_departmentId_roleId_userId_teamId_validFrom_key" ON "AttendancePolicy"("tenantId", "scopeLevel", "departmentId", "roleId", "userId", "teamId", "validFrom");
 
 -- AddForeignKey
 ALTER TABLE "WorkingSchedule" ADD CONSTRAINT "WorkingSchedule_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -636,6 +692,15 @@ ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_tenantId_fkey" FOREIGN KEY (
 ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "AttendanceLog" ADD CONSTRAINT "AttendanceLog_attendanceId_fkey" FOREIGN KEY ("attendanceId") REFERENCES "Attendance"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendanceLog" ADD CONSTRAINT "AttendanceLog_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendanceLog" ADD CONSTRAINT "AttendanceLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "AttendanceRegularization" ADD CONSTRAINT "AttendanceRegularization_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -661,3 +726,12 @@ ALTER TABLE "Counter" ADD CONSTRAINT "Counter_tenantId_fkey" FOREIGN KEY ("tenan
 
 -- AddForeignKey
 ALTER TABLE "AttendancePolicy" ADD CONSTRAINT "AttendancePolicy_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendancePolicy" ADD CONSTRAINT "AttendancePolicy_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendancePolicy" ADD CONSTRAINT "AttendancePolicy_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendancePolicy" ADD CONSTRAINT "AttendancePolicy_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

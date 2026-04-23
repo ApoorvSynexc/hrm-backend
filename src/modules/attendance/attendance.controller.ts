@@ -95,6 +95,17 @@ export class AttendanceController {
     return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 
+  // Get attendance overview (present days, total hours, avg check-in)
+  @Get('overview')
+  @Permissions('read:attendance')
+  async getAttendanceOverview(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const overview = await this.attendanceService.getAttendanceOverview(tenantId, userId);
+    return { message: 'common.fetched', data: overview };
+  }
+
   // Get monthly attendance calendar
   @Get('calendar/month')
   @Permissions('read:attendance')

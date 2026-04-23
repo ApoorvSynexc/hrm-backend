@@ -410,4 +410,67 @@ export class AttendanceService {
       days,
     };
   }
+
+  async getAttendanceOverview(tenantId: string, userId: string) {
+    const now = new Date();
+    const currentMonthStart = startOfMonth(now);
+    const currentMonthEnd = endOfMonth(now);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const currentMonthRecords = await this.attendanceRepository.findByDateRange(
+      tenantId,
+      userId,
+      currentMonthStart,
+      currentMonthEnd,
+    );
+
+    const last30DaysRecords = await this.attendanceRepository.findByDateRange(
+      tenantId,
+      userId,
+      thirtyDaysAgo,
+      now,
+    );
+
+    const presentDays = currentMonthRecords.filter(
+      (record: any) => record.status === 'PRESENT',
+    ).length;
+
+    const totalMinutes = currentMonthRecords.reduce(
+      (sum: number, record: any) => sum + (record.totalMinutes ?? 0),
+      0,
+    );
+    const totalHours = (totalMinutes / 60).toFixed(1);
+
+    const checkInTimes = last30DaysRecords
+      .filter((record: any) => record.firstCheckIn)
+      .map((record: any) => {
+        const checkInDate = new Date(record.firstCheckIn);
+        return checkInDate.getHours() * 60 + checkInDate.getMinutes();
+      });
+
+    let avgCheckInTime = '—';
+    if (checkInTimes.length > 0) {
+      const avgMinutes = Math.round(
+        checkInTimes.reduce((a, b) => a + b, 0) / checkInTimes.length,
+      );
+      const hours = Math.floor(avgMinutes / 60);
+      const minutes = avgMinutes % 60;
+      avgCheckInTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    return {
+      presentDays: {
+        value: presentDays,
+        label: 'this month',
+      },
+      totalHours: {
+        value: totalHours,
+        label: 'logged this month',
+      },
+      avgCheckIn: {
+        value: avgCheckInTime,
+        label: 'last 30 days',
+      },
+    };
+  }
 }

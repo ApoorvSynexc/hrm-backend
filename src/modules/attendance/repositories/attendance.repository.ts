@@ -79,4 +79,20 @@ export class AttendanceRepository {
       data,
     });
   }
+
+  async findByUserAndMonth(tenantId: string, userId: string, startDate: Date, endDate: Date, tx?: TX) {
+    return this.client(tx).attendance.findMany({
+      where: {
+        tenantId,
+        userId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        user: { status: { not: Status.DELETED } },
+        tenant: { status: { not: Status.DELETED } },
+      },
+      orderBy: { date: 'asc' },
+    });
+  }
 }

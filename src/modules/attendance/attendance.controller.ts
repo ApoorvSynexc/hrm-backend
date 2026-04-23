@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { AttendanceService } from './attendance.service.js';
 import { AttendancePolicyService } from './services/attendance-policy.service.js';
-import { CreateRegularizationDto, ReviewRegularizationDto, CheckInDto, CheckOutDto, CreateAttendancePolicyDto, UpdateAttendancePolicyDto } from './dto/index.js';
+import { CreateRegularizationDto, ReviewRegularizationDto, CheckInDto, CheckOutDto, CreateAttendancePolicyDto, UpdateAttendancePolicyDto, AttendanceCalendarQueryDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
@@ -70,6 +70,23 @@ export class AttendanceController {
   ) {
     const record = await this.attendanceService.getTodayAttendance(tenantId, userId);
     return { message: 'common.fetched', data: record };
+  }
+
+  // Get monthly attendance calendar
+  @Get('calendar/month')
+  @Permissions('read:attendance')
+  async getMonthlyCalendar(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @Query() queryDto: AttendanceCalendarQueryDto,
+  ) {
+    const calendar = await this.attendanceService.getMonthlyCalendar(
+      tenantId,
+      userId,
+      queryDto.month,
+      queryDto.year,
+    );
+    return { message: 'common.fetched', data: calendar };
   }
 
   // Get all attendance records OR specific record by ID

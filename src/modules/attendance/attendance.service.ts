@@ -9,6 +9,7 @@ import { CreateRegularizationDto, ReviewRegularizationDto, CheckInDto, CheckOutD
 import { AttendancePolicyService } from './services/attendance-policy.service.js';
 import { GeolocationUtil } from '../../common/utils/geolocation.util.js';
 import { NetworkUtil } from '../../common/utils/network.util.js';
+import { startOfMonth, endOfMonth, format, getDaysInMonth } from 'date-fns';
 
 @Injectable()
 export class AttendanceService {
@@ -284,5 +285,55 @@ export class AttendanceService {
     }
 
     return await this.regularizationRepository.update(id, updateData);
+  }
+
+  async getMonthlyCalendar(tenantId: string, userId: string, month?: number, year?: number) {
+    const now = new Date();
+    const targetMonth = month ?? now.getMonth() + 1;
+    const targetYear = year ?? now.getFullYear();
+
+    const startDate = startOfMonth(new Date(targetYear, targetMonth - 1, 1));
+    const endDate = endOfMonth(startDate);
+
+    const attendanceRecords = await this.attendanceRepository.findByUserAndMonth(
+      tenantId,
+      userId,
+      startDate,
+      endDate,
+    );
+
+    const monthMap = new Map();
+    attendanceRecords.forEach((record) => {
+      const dateKey = format(record.date, 'yyyy-MM-dd');
+      monthMap.set(dateKey, record);
+    });
+
+    const daysInMonth = getDaysInMonth(startDate);
+    const days: any[] = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(targetYear, targetMonth - 1, day);
+      const dateKey = format(date, 'yyyy-MM-dd');
+      const record = monthMap.get(dateKey);
+
+      days.push({
+        date: day,
+        dayOfWeek: format(date, 'EEE'),
+        status: record?.status ?? null,
+        totalMinutes: record?.totalMinutes ?? null,
+        isLate: record?.isLate ?? false,
+        isFinalStatus: record?.isFinalStatus ?? false,
+      });
+    }
+
+    const monthName = format(startDate, 'MMMM');
+
+    return {
+      month: monthName,
+      monthNumber: targetMonth,
+      year: targetYear,
+      daysInMonth,
+      days,
+    };
   }
 }

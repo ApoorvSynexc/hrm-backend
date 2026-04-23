@@ -94,7 +94,13 @@ export class AttendanceService {
       }
     }
 
-    const existing = await this.attendanceRepository.findByUserAndDate(tenantId, userId, today);
+    const existing = await this.attendanceRepository.find(
+      {
+        tenantId,
+        userId,
+        date: { gte: new Date(today.toDateString()), lt: new Date(new Date(today).getTime() + 86400000) },
+      },
+    );
 
     if (existing) {
       const openLog = await this.attendanceLogRepository.findOpenLog(existing.id);
@@ -158,7 +164,13 @@ export class AttendanceService {
       }
     }
 
-    const record = await this.attendanceRepository.findByUserAndDate(tenantId, userId, today);
+    const record = await this.attendanceRepository.find(
+      {
+        tenantId,
+        userId,
+        date: { gte: new Date(today.toDateString()), lt: new Date(new Date(today).getTime() + 86400000) },
+      },
+    );
     if (!record) {
       throw new BadRequestException('No check-in found for today');
     }
@@ -189,9 +201,10 @@ export class AttendanceService {
     }
 
     return await this.prisma.$transaction(async (tx) => {
-      await this.attendanceLogRepository.update(openLog.id, checkOutLogData, tx as any);
+      await this.attendanceLogRepository.update({ id: openLog.id }, checkOutLogData, tx as any);
 
-      const allLogs = await this.attendanceLogRepository.findAllByAttendance(record.id, tx as any);
+      const logsResult = await this.attendanceLogRepository.findAll({ attendanceId: record.id }, { pagination: false }, tx as any);
+      const allLogs = logsResult.data;
       const totalMinutes = allLogs.reduce((sum, log) => {
         if (log.id === openLog.id) return sum + sessionMinutes;
         return sum + (log.durationMinutes ?? 0);
@@ -207,35 +220,81 @@ export class AttendanceService {
         attendanceUpdate.isFinalStatus = true;
       }
 
-      return await this.attendanceRepository.update(record.id, attendanceUpdate, tx as any);
+      return await this.attendanceRepository.update({ id: record.id }, attendanceUpdate, tx as any);
     });
   }
 
-  async getMyAttendance(tenantId: string, userId: string) {
-    return this.attendanceRepository.findManyByUser(tenantId, userId);
+  async getMyAttendance(
+    tenantId: string,
+    userId: string,
+    options?: { limit?: number; page?: number },
+  ) {
+    return this.attendanceRepository.findAll(
+      { tenantId, userId },
+      {
+        pagination: true,
+        limit: options?.limit || 10,
+        page: options?.page || 1,
+      },
+    );
   }
 
   async getTodayAttendance(tenantId: string, userId: string) {
     const today = this.getToday();
-    return this.attendanceRepository.findByUserAndDate(tenantId, userId, today);
+    return this.attendanceRepository.find(
+      {
+        tenantId,
+        userId,
+        date: { gte: new Date(today.toDateString()), lt: new Date(new Date(today).getTime() + 86400000) },
+      },
+      { logs: { orderBy: { checkIn: 'asc' } } },
+    );
   }
 
-  async getAllAttendance(tenantId: string) {
-    return this.attendanceRepository.findManyByTenant(tenantId);
+  async getAllAttendance(
+    tenantId: string,
+    options?: { limit?: number; page?: number },
+  ) {
+    return this.attendanceRepository.findAll(
+      { tenantId },
+      {
+        pagination: true,
+        limit: options?.limit || 10,
+        page: options?.page || 1,
+      },
+      { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+    );
   }
 
   async getAttendanceById(tenantId: string, id: string) {
-    const record = await this.attendanceRepository.findByTenantAndId(tenantId, id);
+    const record = await this.attendanceRepository.find({ tenantId, id });
     if (!record) {
       throw new NotFoundException('Attendance record not found');
     }
     return record;
   }
 
+  async getAttendanceLogs(
+    tenantId: string,
+    attendanceId: string,
+    options?: { limit?: number; page?: number },
+  ) {
+    const record = await this.attendanceRepository.find({ tenantId, id: attendanceId });
+    if (!record) {
+      throw new NotFoundException('Attendance record not found');
+    }
+    return this.attendanceLogRepository.findByAttendanceWithPagination(attendanceId, options);
+  }
+
   async createRegularization(tenantId: string, userId: string, dto: CreateRegularizationDto) {
     const date = new Date(dto.date);
 
-    const existing = await this.regularizationRepository.findByUserAndDate(tenantId, userId, date);
+    const existing = await this.regularizationRepository.find({
+      tenantId,
+      userId,
+      date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) },
+      status: 'PENDING',
+    });
     if (existing) {
       throw new BadRequestException('Pending regularization request already exists for this date');
     }
@@ -252,15 +311,30 @@ export class AttendanceService {
   }
 
   async getMyRegularizations(tenantId: string, userId: string) {
-    return this.regularizationRepository.findManyByUser(tenantId, userId);
+    const result = await this.regularizationRepository.findAll(
+      { tenantId, userId },
+      { pagination: false },
+    );
+    return result.data;
   }
 
-  async getAllRegularizations(tenantId: string) {
-    return this.regularizationRepository.findManyByTenant(tenantId);
+  async getAllRegularizations(
+    tenantId: string,
+    options?: { limit?: number; page?: number },
+  ) {
+    return this.regularizationRepository.findAll(
+      { tenantId },
+      {
+        pagination: true,
+        limit: options?.limit || 10,
+        page: options?.page || 1,
+      },
+      { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+    );
   }
 
   async getRegularizationById(tenantId: string, id: string) {
-    const record = await this.regularizationRepository.findByTenantAndId(tenantId, id);
+    const record = await this.regularizationRepository.find({ tenantId, id });
     if (!record) {
       throw new NotFoundException('Regularization request not found');
     }
@@ -284,7 +358,7 @@ export class AttendanceService {
       updateData.rejectionReason = dto.rejectionReason;
     }
 
-    return await this.regularizationRepository.update(id, updateData);
+    return await this.regularizationRepository.update({ id }, updateData);
   }
 
   async getMonthlyCalendar(tenantId: string, userId: string, month?: number, year?: number) {
@@ -295,7 +369,7 @@ export class AttendanceService {
     const startDate = startOfMonth(new Date(targetYear, targetMonth - 1, 1));
     const endDate = endOfMonth(startDate);
 
-    const attendanceRecords = await this.attendanceRepository.findByUserAndMonth(
+    const attendanceRecords = await this.attendanceRepository.findByDateRange(
       tenantId,
       userId,
       startDate,
@@ -303,7 +377,7 @@ export class AttendanceService {
     );
 
     const monthMap = new Map();
-    attendanceRecords.forEach((record) => {
+    attendanceRecords.forEach((record: any) => {
       const dateKey = format(record.date, 'yyyy-MM-dd');
       monthMap.set(dateKey, record);
     });

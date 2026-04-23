@@ -13,26 +13,124 @@ export class AttendanceRepository {
     return tx ?? this.prisma;
   }
 
-  async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
+  private baseWhere() {
+    return {
+      user: { status: { not: Status.DELETED } },
+      tenant: { status: { not: Status.DELETED } },
+    };
+  }
+
+  /**
+   * Find a single attendance record by flexible where clause
+   */
+  async find(where: Record<string, any>, include?: Record<string, any>, tx?: TX) {
     return this.client(tx).attendance.findFirst({
-      where: { id, tenantId, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
+      where: { ...this.baseWhere(), ...where },
+      include,
     });
   }
 
-  async findByUserAndDate(tenantId: string, userId: string, date: Date, tx?: TX) {
-    return this.client(tx).attendance.findFirst({
-      where: { tenantId, userId, date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) }, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-      include: { logs: { orderBy: { checkIn: 'asc' } } },
+  /**
+   * Find multiple attendance records with optional pagination
+   */
+  async findAll(
+    where?: Record<string, any>,
+    options?: {
+      pagination?: boolean;
+      limit?: number;
+      page?: number;
+    },
+    include?: Record<string, any>,
+    tx?: TX,
+  ) {
+    const {
+      pagination = true,
+      limit = 10,
+      page = 1,
+    } = options || {};
+
+    const skip = pagination ? (page - 1) * limit : 0;
+
+    const [records, total] = await Promise.all([
+      this.client(tx).attendance.findMany({
+        where: { ...this.baseWhere(), ...(where || {}) },
+        include,
+        orderBy: { date: 'desc' },
+        skip: pagination ? skip : undefined,
+        take: pagination ? limit : undefined,
+      }),
+      this.client(tx).attendance.count({
+        where: { ...this.baseWhere(), ...(where || {}) },
+      }),
+    ]);
+
+    const result: any = {
+      data: records,
+    };
+
+    if (pagination) {
+      result.meta = {
+        totalRecords: total,
+        totalPages: Math.ceil(total / limit),
+        page,
+        limit,
+      };
+    }
+
+    return result;
+  }
+
+  /**
+   * Create a new attendance record
+   */
+  async create(data: any, tx?: TX) {
+    return this.client(tx).attendance.create({ data });
+  }
+
+  /**
+   * Update attendance by flexible where clause
+   */
+  async update(where: Record<string, any>, data: any, tx?: TX) {
+    return this.client(tx).attendance.update({
+      where: where as any,
+      data,
     });
   }
 
+
+  /**
+   * Find attendance records by date range (for calendar and reports)
+   */
+  async findByDateRange(
+    tenantId: string,
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    tx?: TX,
+  ) {
+    return this.client(tx).attendance.findMany({
+      where: {
+        tenantId,
+        userId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        ...this.baseWhere(),
+      },
+      orderBy: { date: 'asc' },
+    });
+  }
+
+  /**
+   * Find unfinalized attendance records by date (for batch processing)
+   */
   async findUnfinalizedByDate(date: Date, tx?: TX) {
     return this.client(tx).attendance.findMany({
       where: {
         date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) },
         isFinalStatus: false,
-        user: { status: { not: Status.DELETED } },
-        tenant: { status: { not: Status.DELETED } },
+        ...this.baseWhere(),
       },
       include: {
         logs: { orderBy: { checkIn: 'asc' } },
@@ -51,48 +149,6 @@ export class AttendanceRepository {
           },
         },
       },
-    });
-  }
-
-  async findManyByTenant(tenantId: string, tx?: TX) {
-    return this.client(tx).attendance.findMany({
-      where: { tenantId, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-      include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
-      orderBy: { date: 'desc' },
-    });
-  }
-
-  async findManyByUser(tenantId: string, userId: string, tx?: TX) {
-    return this.client(tx).attendance.findMany({
-      where: { tenantId, userId, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-      orderBy: { date: 'desc' },
-    });
-  }
-
-  async create(data: any, tx?: TX) {
-    return this.client(tx).attendance.create({ data });
-  }
-
-  async update(id: string, data: any, tx?: TX) {
-    return this.client(tx).attendance.update({
-      where: { id },
-      data,
-    });
-  }
-
-  async findByUserAndMonth(tenantId: string, userId: string, startDate: Date, endDate: Date, tx?: TX) {
-    return this.client(tx).attendance.findMany({
-      where: {
-        tenantId,
-        userId,
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-        user: { status: { not: Status.DELETED } },
-        tenant: { status: { not: Status.DELETED } },
-      },
-      orderBy: { date: 'asc' },
     });
   }
 }

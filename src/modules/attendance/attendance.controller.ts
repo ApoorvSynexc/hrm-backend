@@ -52,15 +52,20 @@ export class AttendanceController {
     return { message: 'common.updated', data: attendance };
   }
 
-  // Get current user's attendance records
-  @Get('me')
+  // Get current user's attendance records with pagination
+  @Get('me/list')
   @Permissions('read:attendance')
   async getMyAttendance(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('sub') userId: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
   ) {
-    const records = await this.attendanceService.getMyAttendance(tenantId, userId);
-    return { message: 'common.fetched', data: records };
+    const result = await this.attendanceService.getMyAttendance(tenantId, userId, {
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+    });
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 
   // Get today's attendance record with logs (for check-in/check-out UI)
@@ -72,6 +77,22 @@ export class AttendanceController {
   ) {
     const record = await this.attendanceService.getTodayAttendance(tenantId, userId);
     return { message: 'common.fetched', data: record };
+  }
+
+  // Get attendance logs for a specific attendance record
+  @Get('logs/list')
+  @Permissions('read:attendance')
+  async getAttendanceLogs(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
+  ) {
+    const result = await this.attendanceService.getAttendanceLogs(tenantId, id, {
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+    });
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
   }
 
   // Get monthly attendance calendar
@@ -91,20 +112,30 @@ export class AttendanceController {
     return { message: 'common.fetched', data: calendar };
   }
 
-  // Get all attendance records OR specific record by ID
-  @Get()
+  // Get all attendance records with pagination
+  @Get('list')
   @Permissions('read:attendance')
   async list(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id?: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
   ) {
-    if (id) {
-      const record = await this.attendanceService.getAttendanceById(tenantId, id);
-      return { message: 'common.fetched', data: record };
-    }
+    const result = await this.attendanceService.getAllAttendance(tenantId, {
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+    });
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
+  }
 
-    const records = await this.attendanceService.getAllAttendance(tenantId);
-    return { message: 'common.fetched', data: records };
+  // Get specific attendance record by ID
+  @Get()
+  @Permissions('read:attendance')
+  async getById(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
+  ) {
+    const record = await this.attendanceService.getAttendanceById(tenantId, id);
+    return { message: 'common.fetched', data: record };
   }
 
   // Request regularization for missing check-in/check-out
@@ -131,20 +162,30 @@ export class AttendanceController {
     return { message: 'common.fetched', data: records };
   }
 
-  // Get all regularization requests OR specific request by ID
-  @Get('regularizations')
+  // Get all regularization requests with pagination
+  @Get('regularizations/list')
   @Permissions('read:attendance_regularization')
   async listRegularizations(
     @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id?: string,
+    @Query('limit') limit?: number,
+    @Query('page') page?: number,
   ) {
-    if (id) {
-      const regularization = await this.attendanceService.getRegularizationById(tenantId, id);
-      return { message: 'common.fetched', data: regularization };
-    }
+    const result = await this.attendanceService.getAllRegularizations(tenantId, {
+      limit: limit ? Number(limit) : 10,
+      page: page ? Number(page) : 1,
+    });
+    return { message: 'common.fetched', data: result.data, meta: result.meta };
+  }
 
-    const records = await this.attendanceService.getAllRegularizations(tenantId);
-    return { message: 'common.fetched', data: records };
+  // Get specific regularization request by ID
+  @Get('regularizations')
+  @Permissions('read:attendance_regularization')
+  async getRegularizationById(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query('id') id: string,
+  ) {
+    const regularization = await this.attendanceService.getRegularizationById(tenantId, id);
+    return { message: 'common.fetched', data: regularization };
   }
 
   // Approve/Reject regularization request (HR/Manager only)

@@ -13,34 +13,76 @@ export class AttendanceRegularizationRepository {
     return tx ?? this.prisma;
   }
 
-  async findByTenantAndId(tenantId: string, id: string, tx?: TX) {
+  private baseWhere() {
+    return {
+      user: { status: { not: Status.DELETED } },
+      tenant: { status: { not: Status.DELETED } },
+    };
+  }
+
+  /**
+   * Find a single regularization record by flexible where clause
+   */
+  async find(where: Record<string, any>, include?: Record<string, any>, tx?: TX) {
     return this.client(tx).attendanceRegularization.findFirst({
-      where: { id, tenantId, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-      include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
+      where: { ...this.baseWhere(), ...where },
+      include,
     });
   }
 
-  async findManyByTenant(tenantId: string, tx?: TX) {
-    return this.client(tx).attendanceRegularization.findMany({
-      where: { tenantId, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-      include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+  /**
+   * Find multiple regularization records with optional pagination
+   */
+  async findAll(
+    where?: Record<string, any>,
+    options?: {
+      pagination?: boolean;
+      limit?: number;
+      page?: number;
+    },
+    include?: Record<string, any>,
+    tx?: TX,
+  ) {
+    const {
+      pagination = true,
+      limit = 10,
+      page = 1,
+    } = options || {};
+
+    const skip = pagination ? (page - 1) * limit : 0;
+
+    const [records, total] = await Promise.all([
+      this.client(tx).attendanceRegularization.findMany({
+        where: { ...this.baseWhere(), ...(where || {}) },
+        include,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination ? skip : undefined,
+        take: pagination ? limit : undefined,
+      }),
+      this.client(tx).attendanceRegularization.count({
+        where: { ...this.baseWhere(), ...(where || {}) },
+      }),
+    ]);
+
+    const result: any = {
+      data: records,
+    };
+
+    if (pagination) {
+      result.meta = {
+        totalRecords: total,
+        totalPages: Math.ceil(total / limit),
+        page,
+        limit,
+      };
+    }
+
+    return result;
   }
 
-  async findManyByUser(tenantId: string, userId: string, tx?: TX) {
-    return this.client(tx).attendanceRegularization.findMany({
-      where: { tenantId, userId, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async findByUserAndDate(tenantId: string, userId: string, date: Date, tx?: TX) {
-    return this.client(tx).attendanceRegularization.findFirst({
-      where: { tenantId, userId, date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) }, status: 'PENDING', user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
-    });
-  }
-
+  /**
+   * Create a new regularization record
+   */
   async create(data: any, tx?: TX) {
     return this.client(tx).attendanceRegularization.create({
       data,
@@ -48,9 +90,12 @@ export class AttendanceRegularizationRepository {
     });
   }
 
-  async update(id: string, data: any, tx?: TX) {
+  /**
+   * Update regularization by flexible where clause
+   */
+  async update(where: Record<string, any>, data: any, tx?: TX) {
     return this.client(tx).attendanceRegularization.update({
-      where: { id },
+      where: where as any,
       data,
       include: { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
     });

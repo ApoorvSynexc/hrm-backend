@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
-import { AttendanceRepository, AttendanceRegularizationRepository, AttendanceLogRepository } from './repositories/index.js';
-import { CreateRegularizationDto, ReviewRegularizationDto, CheckInDto, CheckOutDto } from './dto/index.js';
+import { AttendanceRepository, AttendanceLogRepository } from './repositories/index.js';
+import { CheckInDto, CheckOutDto } from './dto/index.js';
 import { AttendancePolicyService } from './services/attendance-policy.service.js';
 import { GeolocationUtil } from '../../common/utils/geolocation.util.js';
 import { NetworkUtil } from '../../common/utils/network.util.js';
@@ -16,7 +16,6 @@ export class AttendanceService {
   constructor(
     private attendanceRepository: AttendanceRepository,
     private attendanceLogRepository: AttendanceLogRepository,
-    private regularizationRepository: AttendanceRegularizationRepository,
     private prisma: PrismaService,
     private policyService: AttendancePolicyService,
   ) {}
@@ -286,80 +285,6 @@ export class AttendanceService {
     return this.attendanceLogRepository.findByAttendanceWithPagination(attendanceId, options);
   }
 
-  async createRegularization(tenantId: string, userId: string, dto: CreateRegularizationDto) {
-    const date = new Date(dto.date);
-
-    const existing = await this.regularizationRepository.find({
-      tenantId,
-      userId,
-      date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) },
-      status: 'PENDING',
-    });
-    if (existing) {
-      throw new BadRequestException('Pending regularization request already exists for this date');
-    }
-
-    return await this.regularizationRepository.create({
-      tenantId,
-      userId,
-      date,
-      requestedCheckIn: dto.requestedCheckIn ? new Date(dto.requestedCheckIn) : null,
-      requestedCheckOut: dto.requestedCheckOut ? new Date(dto.requestedCheckOut) : null,
-      reason: dto.reason,
-      status: 'PENDING',
-    });
-  }
-
-  async getMyRegularizations(tenantId: string, userId: string) {
-    const result = await this.regularizationRepository.findAll(
-      { tenantId, userId },
-      { pagination: false },
-    );
-    return result.data;
-  }
-
-  async getAllRegularizations(
-    tenantId: string,
-    options?: { limit?: number; page?: number },
-  ) {
-    return this.regularizationRepository.findAll(
-      { tenantId },
-      {
-        pagination: true,
-        limit: options?.limit || 10,
-        page: options?.page || 1,
-      },
-      { user: { select: { id: true, email: true, firstName: true, lastName: true } } },
-    );
-  }
-
-  async getRegularizationById(tenantId: string, id: string) {
-    const record = await this.regularizationRepository.find({ tenantId, id });
-    if (!record) {
-      throw new NotFoundException('Regularization request not found');
-    }
-    return record;
-  }
-
-  async reviewRegularization(tenantId: string, reviewerId: string, id: string, dto: ReviewRegularizationDto) {
-    const regularization = await this.getRegularizationById(tenantId, id);
-
-    if (regularization.status !== 'PENDING') {
-      throw new BadRequestException('Regularization is not pending review');
-    }
-
-    const updateData: any = {
-      status: dto.status,
-      reviewedByUserId: reviewerId,
-      reviewedAt: new Date(),
-    };
-
-    if (dto.status === 'REJECTED' && dto.rejectionReason) {
-      updateData.rejectionReason = dto.rejectionReason;
-    }
-
-    return await this.regularizationRepository.update({ id }, updateData);
-  }
 
   async getMonthlyCalendar(tenantId: string, userId: string, month?: number, year?: number) {
     const now = new Date();

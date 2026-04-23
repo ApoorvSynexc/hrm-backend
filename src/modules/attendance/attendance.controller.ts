@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { AttendanceService } from './attendance.service.js';
 import { AttendancePolicyService } from './services/attendance-policy.service.js';
-import { CreateRegularizationDto, ReviewRegularizationDto, CheckInDto, CheckOutDto, CreateAttendancePolicyDto, UpdateAttendancePolicyDto, AttendanceCalendarQueryDto } from './dto/index.js';
+import { CheckInDto, CheckOutDto, CreateAttendancePolicyDto, UpdateAttendancePolicyDto, AttendanceCalendarQueryDto } from './dto/index.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Permissions } from '../../common/decorators/permissions.decorator.js';
 
@@ -149,74 +149,6 @@ export class AttendanceController {
     return { message: 'common.fetched', data: record };
   }
 
-  // Request regularization for missing check-in/check-out
-  @Post('regularizations')
-  @HttpCode(HttpStatus.CREATED)
-  @Permissions('create:attendance_regularization')
-  async createRegularization(
-    @CurrentUser('tenantId') tenantId: string,
-    @CurrentUser('sub') userId: string,
-    @Body() dto: CreateRegularizationDto,
-  ) {
-    const regularization = await this.attendanceService.createRegularization(tenantId, userId, dto);
-    return { message: 'common.created', data: regularization };
-  }
-
-  // Get current user's regularization requests
-  @Get('regularizations/me')
-  @Permissions('read:attendance_regularization')
-  async getMyRegularizations(
-    @CurrentUser('tenantId') tenantId: string,
-    @CurrentUser('sub') userId: string,
-  ) {
-    const records = await this.attendanceService.getMyRegularizations(tenantId, userId);
-    return { message: 'common.fetched', data: records };
-  }
-
-  // Get all regularization requests with pagination
-  @Get('regularizations/list')
-  @Permissions('read:attendance_regularization')
-  async listRegularizations(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('limit') limit?: number,
-    @Query('page') page?: number,
-  ) {
-    const result = await this.attendanceService.getAllRegularizations(tenantId, {
-      limit: limit ? Number(limit) : 10,
-      page: page ? Number(page) : 1,
-    });
-    return { message: 'common.fetched', data: result.data, meta: result.meta };
-  }
-
-  // Get specific regularization request by ID
-  @Get('regularizations')
-  @Permissions('read:attendance_regularization')
-  async getRegularizationById(
-    @CurrentUser('tenantId') tenantId: string,
-    @Query('id') id: string,
-  ) {
-    const regularization = await this.attendanceService.getRegularizationById(tenantId, id);
-    return { message: 'common.fetched', data: regularization };
-  }
-
-  // Approve/Reject regularization request (HR/Manager only)
-  @Patch('regularizations')
-  @HttpCode(HttpStatus.OK)
-  @Permissions('approve:attendance_regularization')
-  async reviewRegularization(
-    @CurrentUser('tenantId') tenantId: string,
-    @CurrentUser('sub') reviewerId: string,
-    @Query('id') id: string,
-    @Body() dto: ReviewRegularizationDto,
-  ) {
-    const regularization = await this.attendanceService.reviewRegularization(
-      tenantId,
-      reviewerId,
-      id,
-      dto,
-    );
-    return { message: 'common.updated', data: regularization };
-  }
 
   // Get applied policy for current user (resolves hierarchy)
   @Get('policy/me')

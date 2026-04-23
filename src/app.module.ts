@@ -17,6 +17,7 @@ import { HolidayModule } from './modules/holiday/holiday.module.js';
 import { LeaveBalanceModule } from './modules/leave-balance/leave-balance.module.js';
 import { DesignationModule } from './modules/designation/designation.module.js';
 import { WorkingScheduleModule } from './modules/working-schedule/working-schedule.module.js';
+import { RegularizationModule } from './modules/regularization/regularization.module.js';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { WorkingScheduleModule } from './modules/working-schedule/working-schedu
     LeaveBalanceModule,
     DesignationModule,
     WorkingScheduleModule,
+    RegularizationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

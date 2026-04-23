@@ -3,7 +3,7 @@ import { AttendanceService } from './attendance.service.js';
 import { AttendancePolicyService } from './services/attendance-policy.service.js';
 import { AttendanceCronService } from './services/attendance-cron.service.js';
 import { AttendanceController } from './attendance.controller.js';
-import { AttendanceRepository, AttendanceRegularizationRepository, AttendanceLogRepository } from './repositories/index.js';
+import { AttendanceRepository, AttendanceLogRepository } from './repositories/index.js';
 
 @Module({
   controllers: [AttendanceController],
@@ -12,7 +12,6 @@ import { AttendanceRepository, AttendanceRegularizationRepository, AttendanceLog
     AttendancePolicyService,
     AttendanceCronService,
     AttendanceRepository,
-    AttendanceRegularizationRepository,
     AttendanceLogRepository,
   ],
 })

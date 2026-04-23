@@ -389,7 +389,6 @@ CREATE TABLE "AttendancePolicy" (
     "roleId" TEXT,
     "userId" TEXT,
     "teamId" TEXT,
-    "priority" INTEGER NOT NULL DEFAULT 100,
     "policyType" "AttendancePolicyType" NOT NULL DEFAULT 'FLEXIBLE',
     "ipRanges" JSONB,
     "radiusMeters" INTEGER NOT NULL DEFAULT 100,

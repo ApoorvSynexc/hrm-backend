@@ -141,7 +141,6 @@ export class TenantService {
             scopeLevel: 'TENANT',
             policyType: 'FLEXIBLE',
             radiusMeters: 100,
-            priority: 1,
             status: 'ACTIVE',
           },
         });

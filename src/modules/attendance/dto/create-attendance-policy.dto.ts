@@ -51,11 +51,6 @@ export class CreateAttendancePolicyDto {
   @IsOptional()
   teamId?: string;
 
-  @IsNumber()
-  @IsOptional()
-  @Min(1)
-  priority?: number; // Higher = takes precedence
-
   // RULES
   @IsEnum(AttendancePolicyType)
   @IsOptional()

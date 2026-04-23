@@ -23,11 +23,6 @@ export class UpdateAttendancePolicyDto {
   @IsOptional()
   description?: string;
 
-  @IsNumber()
-  @IsOptional()
-  @Min(1)
-  priority?: number;
-
   @IsEnum(AttendancePolicyType)
   @IsOptional()
   policyType?: AttendancePolicyType;

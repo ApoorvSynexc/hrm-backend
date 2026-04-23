@@ -9,7 +9,11 @@ import {
   UpdateAttendancePolicyDto,
   QueryAttendancePolicyDto,
 } from '../dto/index.js';
-import { Status } from '../../../../generated/prisma/client.js';
+import {
+  Prisma,
+  Status,
+  AttendancePolicyType as PrismaAttendancePolicyType,
+} from '../../../../generated/prisma/client.js';
 
 @Injectable()
 export class AttendancePolicyService {
@@ -60,7 +64,7 @@ export class AttendancePolicyService {
       await this.ensureSingleActiveTenantPolicy(tenantId);
     }
 
-    const data = this.sanitizePolicy({
+    const data: Prisma.AttendancePolicyUncheckedCreateInput = this.sanitizePolicy({
       tenantId,
       name: dto.name,
       description: dto.description,
@@ -69,9 +73,8 @@ export class AttendancePolicyService {
       roleId: dto.roleId,
       userId: dto.userId,
       teamId: dto.teamId,
-      priority: dto.priority ?? 100,
-      policyType: dto.policyType ?? 'FLEXIBLE',
-      ipRanges: dto.ipRanges,
+      policyType: (dto.policyType ?? 'FLEXIBLE') as PrismaAttendancePolicyType,
+      ipRanges: this.toInputJson(dto.ipRanges),
       radiusMeters: dto.radiusMeters ?? 100,
       wifiSsids: dto.wifiSsids,
       validFrom: dto.validFrom ? new Date(dto.validFrom) : new Date(),
@@ -98,12 +101,11 @@ export class AttendancePolicyService {
       await this.ensureSingleActiveTenantPolicy(tenantId, policyId);
     }
 
-    const data = this.sanitizePolicy({
+    const data: Prisma.AttendancePolicyUncheckedUpdateInput = this.sanitizePolicy({
       name: dto.name,
       description: dto.description,
-      priority: dto.priority,
-      policyType: dto.policyType,
-      ipRanges: dto.ipRanges,
+      policyType: dto.policyType as PrismaAttendancePolicyType | undefined,
+      ipRanges: this.toInputJson(dto.ipRanges),
       radiusMeters: dto.radiusMeters,
       wifiSsids: dto.wifiSsids,
       validUntil: dto.validUntil ? new Date(dto.validUntil) : undefined,
@@ -146,7 +148,7 @@ export class AttendancePolicyService {
 
     return await this.prisma.attendancePolicy.findMany({
       where,
-      orderBy: { priority: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -169,7 +171,7 @@ export class AttendancePolicyService {
       throw new NotFoundException('User not found');
     }
 
-    // Fetch all active policies in priority order
+    // Fetch all active policies; resolution is determined by scope hierarchy.
     const policies = await this.prisma.attendancePolicy.findMany({
       where: {
         tenantId,
@@ -178,10 +180,10 @@ export class AttendancePolicyService {
         validFrom: { lte: now },
         OR: [{ validUntil: null }, { validUntil: { gte: now } }],
       },
-      orderBy: { priority: 'desc' },
+      orderBy: [{ validFrom: 'desc' }, { createdAt: 'desc' }],
     });
 
-    // Check user-level policy (highest priority)
+    // Check user-level policy first
     const userPolicy = policies.find((p) => p.scopeLevel === 'USER' && p.userId === userId);
     if (userPolicy) return userPolicy;
 
@@ -228,7 +230,6 @@ export class AttendancePolicyService {
           scopeLevel: 'TENANT',
           policyType: 'FLEXIBLE',
           radiusMeters: 100,
-          priority: 1,
           status: Status.ACTIVE,
         },
       });
@@ -240,20 +241,24 @@ export class AttendancePolicyService {
   /**
    * Convert DTO objects to plain JSON for Prisma
    */
-  private sanitizePolicy(dto: any) {
-    const sanitized: any = { ...dto };
+  private toInputJson(value: unknown): Prisma.InputJsonValue | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  }
+
+  private sanitizePolicy<T extends Record<string, unknown>>(dto: T): T {
+    const sanitized = { ...dto } as T;
 
     // Remove undefined fields
-    Object.keys(sanitized).forEach((key) => {
+    (Object.keys(sanitized) as Array<keyof T>).forEach((key) => {
       if (sanitized[key] === undefined) {
         delete sanitized[key];
       }
     });
 
-    if (sanitized.ipRanges && Array.isArray(sanitized.ipRanges)) {
-      sanitized.ipRanges = JSON.parse(JSON.stringify(sanitized.ipRanges));
-    }
-
-    return sanitized;
+    return sanitized as T;
   }
 }

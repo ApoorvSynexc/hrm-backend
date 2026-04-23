@@ -566,7 +566,6 @@ model AttendancePolicy {
   roleId          String?
   userId          String?
   teamId          String?
-  priority        Int                      @default(100) // Higher priority = takes precedence
 
   // RULES: Attendance policy configuration
   policyType      AttendancePolicyType     @default(FLEXIBLE) // STRICT | FLEXIBLE

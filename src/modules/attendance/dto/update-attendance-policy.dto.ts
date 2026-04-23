@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsOptional, IsNumber, Min, IsArray, ValidateNested } from 'class-validator';
+import { IsEnum, IsString, IsOptional, IsNumber, Min, IsArray, ValidateNested, IsISO8601, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 enum AttendancePolicyType {
@@ -15,6 +15,19 @@ class IpRangeDto {
 }
 
 export class UpdateAttendancePolicyDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  priority?: number;
+
   @IsEnum(AttendancePolicyType)
   @IsOptional()
   policyType?: AttendancePolicyType;
@@ -25,13 +38,21 @@ export class UpdateAttendancePolicyDto {
   @IsOptional()
   ipRanges?: IpRangeDto[];
 
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  radiusMeters?: number;
+
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
   wifiSsids?: string[];
 
-  @IsNumber()
+  @IsISO8601()
   @IsOptional()
-  @Min(0)
-  radiusMeters?: number;
+  validUntil?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 }

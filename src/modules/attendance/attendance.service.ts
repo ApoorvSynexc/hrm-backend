@@ -82,7 +82,7 @@ export class AttendanceService {
     const today = this.getToday();
     const now = new Date();
 
-    const policy = await this.policyService.getPolicyOrDefault(tenantId);
+    const policy = await this.policyService.getPolicyForUser(tenantId, userId);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
 
     if (policy.policyType === 'STRICT') {
@@ -146,7 +146,7 @@ export class AttendanceService {
     const today = this.getToday();
     const now = new Date();
 
-    const policy = await this.policyService.getPolicyOrDefault(tenantId);
+    const policy = await this.policyService.getPolicyForUser(tenantId, userId);
     const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
 
     if (policy.policyType === 'STRICT') {

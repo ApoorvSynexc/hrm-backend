@@ -251,6 +251,13 @@ export const DEFAULT_PERMISSIONS = [
     description: 'Delete attendance records',
     tenantId: null,
   },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440072',
+    action: 'manage',
+    subject: 'attendance',
+    description: 'Manage attendance policies and configuration',
+    tenantId: null,
+  },
 
   // Attendance regularization
   {

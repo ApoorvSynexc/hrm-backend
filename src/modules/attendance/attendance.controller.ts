@@ -3,8 +3,10 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Query,
+  Param,
   HttpCode,
   HttpStatus,
   Req,
@@ -164,35 +166,64 @@ export class AttendanceController {
     return { message: 'common.updated', data: regularization };
   }
 
-  // Get attendance policy (STRICT = IP/Geolocation required, FLEXIBLE = no validation)
-  @Get('policy')
+  // Get applied policy for current user (resolves hierarchy)
+  @Get('policy/me')
   @Permissions('read:attendance')
-  async getPolicy(@CurrentUser('tenantId') tenantId: string) {
-    const policy = await this.policyService.getPolicyOrDefault(tenantId);
+  async getMyPolicy(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const policy = await this.policyService.getPolicyForUser(tenantId, userId);
     return { message: 'common.fetched', data: policy };
   }
 
-  // Create or update attendance policy for tenant
+  // List all policies for tenant (optionally filtered)
+  @Get('policy/list')
+  @Permissions('read:attendance')
+  async listPolicies(
+    @CurrentUser('tenantId') tenantId: string,
+    @Query() queryDto: any, // QueryAttendancePolicyDto - with all optional fields
+  ) {
+    const policies = await this.policyService.listPolicies(tenantId, queryDto);
+    return { message: 'common.fetched', data: policies };
+  }
+
+  // Create a new attendance policy
   @Post('policy')
   @HttpCode(HttpStatus.CREATED)
   @Permissions('manage:attendance')
-  async createOrUpdatePolicy(
+  async createPolicy(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
     @Body() dto: CreateAttendancePolicyDto,
   ) {
-    const policy = await this.policyService.upsertPolicy(tenantId, dto);
-    return { message: 'common.updated', data: policy };
+    const policy = await this.policyService.createPolicy(tenantId, userId, dto);
+    return { message: 'common.created', data: policy };
   }
 
-  // Update specific policy fields (partial update)
-  @Patch('policy')
+  // Update a policy (partial update)
+  @Patch('policy/:id')
   @HttpCode(HttpStatus.OK)
   @Permissions('manage:attendance')
   async updatePolicy(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+    @Param('id') policyId: string,
     @Body() dto: UpdateAttendancePolicyDto,
   ) {
-    const policy = await this.policyService.updatePolicy(tenantId, dto);
+    const policy = await this.policyService.updatePolicy(tenantId, policyId, userId, dto);
     return { message: 'common.updated', data: policy };
+  }
+
+  // Delete a policy
+  @Delete('policy/:id')
+  @HttpCode(HttpStatus.OK)
+  @Permissions('manage:attendance')
+  async deletePolicy(
+    @CurrentUser('tenantId') tenantId: string,
+    @Param('id') policyId: string,
+  ) {
+    await this.policyService.deletePolicy(tenantId, policyId);
+    return { message: 'common.deleted', data: null };
   }
 }

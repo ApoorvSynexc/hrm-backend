@@ -137,8 +137,11 @@ export class TenantService {
         await tx.attendancePolicy.create({
           data: {
             tenantId: newTenant.id,
+            name: 'Default Flexible Policy',
+            scopeLevel: 'TENANT',
             policyType: 'FLEXIBLE',
             radiusMeters: 100,
+            priority: 1,
             status: 'ACTIVE',
           },
         });
@@ -455,9 +458,12 @@ export class TenantService {
       throw new BadRequestException('Tenant not found');
     }
 
-    // Fetch attendance policy
-    const policy = await this.prisma.attendancePolicy.findUnique({
-      where: { tenantId },
+    // Fetch default attendance policy for tenant
+    const policy = await this.prisma.attendancePolicy.findFirst({
+      where: {
+        tenantId,
+        scopeLevel: 'TENANT',
+      },
     });
 
     return {

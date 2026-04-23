@@ -66,6 +66,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'read:attendance',
     'update:attendance',
     'delete:attendance',
+    'manage:attendance',
 
     // Attendance Regularization Management
     'create:attendance_regularization',
@@ -119,6 +120,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'read:attendance',
     'update:attendance',
     'delete:attendance',
+    'manage:attendance',
 
     // Attendance Regularization
     'create:attendance_regularization',

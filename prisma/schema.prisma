@@ -223,6 +223,7 @@ model User {
   attendanceRegularizations         AttendanceRegularization[]
   reviewedAttendanceRegularizations AttendanceRegularization[] @relation("ReviewedBy")
   leaveBalances                     LeaveBalance[]
+  policies                          AttendancePolicy[]
   contact                           Contact?
   address                           Address?
 
@@ -311,6 +312,7 @@ model Role {
   tenant          Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users           User[]
   rolePermissions RolePermission[]
+  policies        AttendancePolicy[]
 
   @@unique([tenantId, name])
   @@unique([id, tenantId])
@@ -356,6 +358,7 @@ model Department {
   updatedAt   DateTime @updatedAt
   tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users       User[]
+  policies    AttendancePolicy[]
 
   @@unique([id, tenantId])
   @@index([tenantId])
@@ -554,15 +557,43 @@ model Counter {
 model AttendancePolicy {
   id              String                   @id @default(cuid())
   tenantId        String
-  policyType      AttendancePolicyType     @default(FLEXIBLE)
-  ipRanges        Json?                    // Array of {start, end} - for multiple routers: [{start: "192.168.1.0", end: "192.168.1.255"}, {start: "192.168.2.0", end: "192.168.2.255"}]
+  name            String                   // e.g., "Engineering Strict", "Sales Flexible"
+  description     String?
+
+  // SCOPE: Where does this policy apply?
+  scopeLevel      String                   @default("TENANT") // TENANT | DEPARTMENT | ROLE | USER | TEAM
+  departmentId    String?
+  roleId          String?
+  userId          String?
+  teamId          String?
+  priority        Int                      @default(100) // Higher priority = takes precedence
+
+  // RULES: Attendance policy configuration
+  policyType      AttendancePolicyType     @default(FLEXIBLE) // STRICT | FLEXIBLE
+  ipRanges        Json?                    // Array: [{start: "192.168.1.0", end: "192.168.1.255"}]
   radiusMeters    Int                      @default(100) // Geolocation radius in meters
-  wifiSsids       String[]                 // Array of office WiFi SSIDs: ["Office-Main", "Office-Guest", "Office-5G"]
+  wifiSsids       String[]                 // Array of office WiFi SSIDs
+
+  // VERSIONING: When is this policy active?
+  validFrom       DateTime                 @default(now())
+  validUntil      DateTime?                // null = indefinite
+  isActive        Boolean                  @default(true)
+
+  // METADATA
   status          Status                   @default(ACTIVE)
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
-  tenant          Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy       String?                  // User ID who created
+  updatedBy       String?                  // User ID who updated
 
-  @@unique([tenantId])
+  // Relations
+  tenant          Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  department      Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  role            Role?                    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  user            User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, scopeLevel, departmentId, roleId, userId, teamId, validFrom])
   @@index([tenantId])
+  @@index([tenantId, scopeLevel])
+  @@index([tenantId, isActive, validFrom])
 }

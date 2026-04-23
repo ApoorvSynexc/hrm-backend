@@ -61,6 +61,17 @@ export class AttendanceController {
     return { message: 'common.fetched', data: records };
   }
 
+  // Get today's attendance record with logs (for check-in/check-out UI)
+  @Get('today')
+  @Permissions('read:attendance')
+  async getTodayAttendance(
+    @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    const record = await this.attendanceService.getTodayAttendance(tenantId, userId);
+    return { message: 'common.fetched', data: record };
+  }
+
   // Get all attendance records OR specific record by ID
   @Get()
   @Permissions('read:attendance')

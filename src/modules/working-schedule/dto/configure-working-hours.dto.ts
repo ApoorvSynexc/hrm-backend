@@ -42,6 +42,35 @@ export class ConfigureWorkingHoursDto {
   workingHoursPerDay?: number; // minutes: 480 = 8 hours, optional
 
   @IsOptional()
+  @IsInt()
+  @Min(60)
+  @Max(1440)
+  fullDayMinimumMinutes?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(30)
+  @Max(720)
+  halfDayMinimumMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, {
+    message: 'lateMarkAfter must be in HH:mm format (e.g., 09:15)',
+  })
+  lateMarkAfter?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(120)
+  graceTimeInMinutes?: number;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
   @IsEnum(StatusEnum)
   status?: string; // ACTIVE or INACTIVE
 }

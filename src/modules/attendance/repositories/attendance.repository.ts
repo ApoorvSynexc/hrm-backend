@@ -22,6 +22,35 @@ export class AttendanceRepository {
   async findByUserAndDate(tenantId: string, userId: string, date: Date, tx?: TX) {
     return this.client(tx).attendance.findFirst({
       where: { tenantId, userId, date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) }, user: { status: { not: Status.DELETED } }, tenant: { status: { not: Status.DELETED } } },
+      include: { logs: { orderBy: { checkIn: 'asc' } } },
+    });
+  }
+
+  async findUnfinalizedByDate(date: Date, tx?: TX) {
+    return this.client(tx).attendance.findMany({
+      where: {
+        date: { gte: new Date(date.toDateString()), lt: new Date(new Date(date).getTime() + 86400000) },
+        isFinalStatus: false,
+        user: { status: { not: Status.DELETED } },
+        tenant: { status: { not: Status.DELETED } },
+      },
+      include: {
+        logs: { orderBy: { checkIn: 'asc' } },
+        user: {
+          select: {
+            id: true,
+            workingSchedule: {
+              select: {
+                fullDayMinimumMinutes: true,
+                halfDayMinimumMinutes: true,
+                lateMarkAfter: true,
+                graceTimeInMinutes: true,
+                timezone: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 

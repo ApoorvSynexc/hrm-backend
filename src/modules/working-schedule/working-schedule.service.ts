@@ -15,7 +15,7 @@ export class WorkingScheduleService {
 
   async create(tenantId: string, dto: ConfigureWorkingHoursDto) {
     await this.validateTenant(tenantId);
-    const { name = 'Standard', workingDays = [], startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
+    const { name = 'Standard', workingDays = [], startTime, endTime, breakDuration, workingHoursPerDay, fullDayMinimumMinutes, halfDayMinimumMinutes, lateMarkAfter, graceTimeInMinutes, timezone, status } = dto;
     this.validateWorkingDays(workingDays || []);
     await this.checkNameUniqueness(tenantId, name);
 
@@ -27,13 +27,18 @@ export class WorkingScheduleService {
       endTime,
       breakDuration,
       workingHoursPerDay,
+      fullDayMinimumMinutes,
+      halfDayMinimumMinutes,
+      lateMarkAfter,
+      graceTimeInMinutes,
+      timezone,
       status: status || 'ACTIVE',
     });
   }
 
   async update(tenantId: string, id: string, dto: ConfigureWorkingHoursDto) {
     await this.validateTenant(tenantId);
-    const { name, workingDays, startTime, endTime, breakDuration, workingHoursPerDay, status } = dto;
+    const { name, workingDays, startTime, endTime, breakDuration, workingHoursPerDay, fullDayMinimumMinutes, halfDayMinimumMinutes, lateMarkAfter, graceTimeInMinutes, timezone, status } = dto;
 
     if (workingDays && workingDays.length > 0) {
       this.validateWorkingDays(workingDays);
@@ -50,6 +55,11 @@ export class WorkingScheduleService {
     if (endTime) updateData.endTime = endTime;
     if (breakDuration !== undefined) updateData.breakDuration = breakDuration;
     if (workingHoursPerDay !== undefined) updateData.workingHoursPerDay = workingHoursPerDay;
+    if (fullDayMinimumMinutes !== undefined) updateData.fullDayMinimumMinutes = fullDayMinimumMinutes;
+    if (halfDayMinimumMinutes !== undefined) updateData.halfDayMinimumMinutes = halfDayMinimumMinutes;
+    if (lateMarkAfter !== undefined) updateData.lateMarkAfter = lateMarkAfter;
+    if (graceTimeInMinutes !== undefined) updateData.graceTimeInMinutes = graceTimeInMinutes;
+    if (timezone !== undefined) updateData.timezone = timezone;
     if (status) updateData.status = status;
 
     return await this.workingScheduleRepository.update({ id, tenantId }, updateData);

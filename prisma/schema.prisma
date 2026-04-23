@@ -124,6 +124,7 @@ model Tenant {
   payrolls                  Payroll[]
   rolePermissions           RolePermission[]
   attendances               Attendance[]
+  attendanceLogs            AttendanceLog[]
   attendanceRegularizations AttendanceRegularization[]
   domains                   TenantDomain[]
   workingSchedules          WorkingSchedule[]
@@ -134,19 +135,24 @@ model Tenant {
 }
 
 model WorkingSchedule {
-  id               String   @id @default(cuid())
-  tenantId         String
-  name             String // e.g., "Standard", "Summer Schedule"
-  workingDays      String[] // e.g., ["MON", "TUE", "WED", "THU", "FRI"]
-  startTime        String   // e.g., "09:00" (HH:mm format)
-  endTime          String   // e.g., "17:00" (HH:mm format)
-  breakDuration    Int      @default(0) // hours
-  workingHoursPerDay Int    @default(480) // minutes: 480 = 8 hours, 420 = 7 hours, etc
-  status           Status   @default(ACTIVE)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users            User[]
+  id                    String   @id @default(cuid())
+  tenantId              String
+  name                  String // e.g., "Standard", "Summer Schedule"
+  workingDays           String[] // e.g., ["MON", "TUE", "WED", "THU", "FRI"]
+  startTime             String   // e.g., "09:00" (HH:mm format)
+  endTime               String   // e.g., "17:00" (HH:mm format)
+  breakDuration         Int      @default(0) // hours
+  workingHoursPerDay    Int      @default(480) // minutes: 480 = 8 hours, 420 = 7 hours, etc
+  fullDayMinimumMinutes Int      @default(480) // minutes needed to be marked PRESENT
+  halfDayMinimumMinutes Int      @default(240) // minutes needed to be marked HALF_DAY
+  lateMarkAfter         String?  // "HH:mm" — null means no late tracking
+  graceTimeInMinutes    Int      @default(0) // grace period added to lateMarkAfter
+  timezone              String   @default("UTC") // IANA timezone, e.g. "Asia/Kolkata"
+  status                Status   @default(ACTIVE)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users                 User[]
 
   @@unique([tenantId, name])
   @@index([tenantId])
@@ -213,6 +219,7 @@ model User {
   leaves                            Leave[]
   payrolls                          Payroll[]
   attendances                       Attendance[]
+  attendanceLogs                    AttendanceLog[]
   attendanceRegularizations         AttendanceRegularization[]
   reviewedAttendanceRegularizations AttendanceRegularization[] @relation("ReviewedBy")
   leaveBalances                     LeaveBalance[]
@@ -414,27 +421,22 @@ model Payroll {
 }
 
 model Attendance {
-  id                  String                     @id @default(cuid())
-  tenantId            String
-  userId              String
-  date                DateTime
-  checkIn             DateTime?
-  checkOut            DateTime?
-  checkInIp           String?
-  checkOutIp          String?
-  checkInLatitude     Decimal?                   @db.Decimal(10, 8)
-  checkInLongitude    Decimal?                   @db.Decimal(11, 8)
-  checkOutLatitude    Decimal?                   @db.Decimal(10, 8)
-  checkOutLongitude   Decimal?                   @db.Decimal(11, 8)
-  checkInMethod       String? // "IP_RANGE", "GEOLOCATION", "WIFI_SSID"
-  checkOutMethod      String?
-  totalMinutes        Int?
-  status              AttendanceStatus
-  createdAt           DateTime                   @default(now())
-  updatedAt           DateTime                   @updatedAt
-  tenant              Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  regularizations     AttendanceRegularization[]
+  id             String                     @id @default(cuid())
+  tenantId       String
+  userId         String
+  date           DateTime
+  firstCheckIn   DateTime? // first check-in of the day (for quick access + late calc)
+  lastCheckOut   DateTime? // last check-out of the day
+  totalMinutes   Int?      // sum of all closed session durations
+  status         AttendanceStatus
+  isFinalStatus  Boolean                    @default(false) // true after cron or instant finalization
+  isLate         Boolean                    @default(false) // true if firstCheckIn > lateMarkAfter + grace
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  tenant         Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  regularizations AttendanceRegularization[]
+  logs           AttendanceLog[]
 
   @@unique([tenantId, userId, date])
   @@unique([id, tenantId])
@@ -442,6 +444,35 @@ model Attendance {
   @@index([userId])
   @@index([tenantId, date])
   @@index([tenantId, status])
+  @@index([tenantId, isFinalStatus])
+}
+
+model AttendanceLog {
+  id                String     @id @default(cuid())
+  tenantId          String
+  attendanceId      String
+  userId            String
+  checkIn           DateTime
+  checkOut          DateTime?
+  durationMinutes   Int?
+  checkInIp         String?
+  checkOutIp        String?
+  checkInLatitude   Decimal?   @db.Decimal(10, 8)
+  checkInLongitude  Decimal?   @db.Decimal(11, 8)
+  checkOutLatitude  Decimal?   @db.Decimal(10, 8)
+  checkOutLongitude Decimal?   @db.Decimal(11, 8)
+  checkInMethod     String?
+  checkOutMethod    String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  attendance        Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  tenant            Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([attendanceId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([tenantId, checkIn])
 }
 
 model AttendanceRegularization {

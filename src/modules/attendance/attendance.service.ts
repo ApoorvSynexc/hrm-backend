@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service.js';
-import { AttendanceRepository, AttendanceRegularizationRepository } from './repositories/index.js';
+import { AttendanceRepository, AttendanceRegularizationRepository, AttendanceLogRepository } from './repositories/index.js';
 import { CreateRegularizationDto, ReviewRegularizationDto, CheckInDto, CheckOutDto } from './dto/index.js';
 import { AttendancePolicyService } from './services/attendance-policy.service.js';
 import { GeolocationUtil } from '../../common/utils/geolocation.util.js';
@@ -14,6 +14,7 @@ import { NetworkUtil } from '../../common/utils/network.util.js';
 export class AttendanceService {
   constructor(
     private attendanceRepository: AttendanceRepository,
+    private attendanceLogRepository: AttendanceLogRepository,
     private regularizationRepository: AttendanceRegularizationRepository,
     private prisma: PrismaService,
     private policyService: AttendancePolicyService,
@@ -27,14 +28,12 @@ export class AttendanceService {
   private async validateCheckIn(tenant: any, policy: any, dto: CheckInDto, request: any): Promise<boolean> {
     const clientIp = NetworkUtil.getClientIp(request);
 
-    // Check multiple IP ranges if configured
     if (policy.ipRanges && Array.isArray(policy.ipRanges) && policy.ipRanges.length > 0) {
       if (NetworkUtil.isIpInMultipleRanges(clientIp, policy.ipRanges)) {
         return true;
       }
     }
 
-    // Check geolocation if provided and office location is set
     if (dto.latitude && dto.longitude && tenant.officeLatitude && tenant.officeLogitude) {
       if (
         GeolocationUtil.isWithinRadius(
@@ -55,14 +54,12 @@ export class AttendanceService {
   private async validateCheckOut(tenant: any, policy: any, dto: CheckOutDto, request: any): Promise<boolean> {
     const clientIp = NetworkUtil.getClientIp(request);
 
-    // Check multiple IP ranges if configured
     if (policy.ipRanges && Array.isArray(policy.ipRanges) && policy.ipRanges.length > 0) {
       if (NetworkUtil.isIpInMultipleRanges(clientIp, policy.ipRanges)) {
         return true;
       }
     }
 
-    // Check geolocation if provided and office location is set
     if (dto.latitude && dto.longitude && tenant.officeLatitude && tenant.officeLogitude) {
       if (
         GeolocationUtil.isWithinRadius(
@@ -82,14 +79,11 @@ export class AttendanceService {
 
   async checkIn(tenantId: string, userId: string, dto: CheckInDto, request: any) {
     const today = this.getToday();
+    const now = new Date();
 
-    // Get attendance policy
     const policy = await this.policyService.getPolicyOrDefault(tenantId);
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-    });
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
 
-    // Validate policy if strict
     if (policy.policyType === 'STRICT') {
       const validCheckIn = await this.validateCheckIn(tenant, policy, dto, request);
       if (!validCheckIn) {
@@ -100,46 +94,60 @@ export class AttendanceService {
     }
 
     const existing = await this.attendanceRepository.findByUserAndDate(tenantId, userId, today);
-    if (existing && existing.checkIn) {
-      throw new BadRequestException('Already checked in today');
+
+    if (existing) {
+      const openLog = await this.attendanceLogRepository.findOpenLog(existing.id);
+      if (openLog) {
+        throw new BadRequestException('Already checked in. Please check out before checking in again.');
+      }
     }
 
-    const checkInData: any = {
-      checkIn: new Date(),
+    const logData: any = {
+      tenantId,
+      userId,
+      checkIn: now,
       checkInIp: NetworkUtil.getClientIp(request),
-      status: 'PRESENT',
+      checkInMethod: dto.latitude && dto.longitude ? 'GEOLOCATION' : 'IP_RANGE',
     };
 
     if (dto.latitude && dto.longitude) {
-      checkInData.checkInLatitude = dto.latitude;
-      checkInData.checkInLongitude = dto.longitude;
-      checkInData.checkInMethod = 'GEOLOCATION';
-    } else {
-      checkInData.checkInMethod = 'IP_RANGE';
+      logData.checkInLatitude = dto.latitude;
+      logData.checkInLongitude = dto.longitude;
     }
 
-    if (existing) {
-      return await this.attendanceRepository.update(existing.id, checkInData);
-    }
+    return await this.prisma.$transaction(async (tx) => {
+      let attendanceRecord: any;
 
-    return await this.attendanceRepository.create({
-      tenantId,
-      userId,
-      date: today,
-      ...checkInData,
+      if (!existing) {
+        attendanceRecord = await this.attendanceRepository.create(
+          {
+            tenantId,
+            userId,
+            date: today,
+            firstCheckIn: now,
+            status: 'MISSING_CHECKOUT',
+            isFinalStatus: false,
+            isLate: false,
+          },
+          tx as any,
+        );
+      } else {
+        attendanceRecord = existing;
+      }
+
+      await this.attendanceLogRepository.create({ ...logData, attendanceId: attendanceRecord.id }, tx as any);
+
+      return attendanceRecord;
     });
   }
 
   async checkOut(tenantId: string, userId: string, dto: CheckOutDto, request: any) {
     const today = this.getToday();
+    const now = new Date();
 
-    // Get attendance policy
     const policy = await this.policyService.getPolicyOrDefault(tenantId);
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-    });
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
 
-    // Validate policy if strict
     if (policy.policyType === 'STRICT') {
       const validCheckOut = await this.validateCheckOut(tenant, policy, dto, request);
       if (!validCheckOut) {
@@ -154,46 +162,61 @@ export class AttendanceService {
       throw new BadRequestException('No check-in found for today');
     }
 
-    if (!record.checkIn) {
-      throw new BadRequestException('Please check in first');
+    const openLog = await this.attendanceLogRepository.findOpenLog(record.id);
+    if (!openLog) {
+      throw new BadRequestException('No open check-in session found. Please check in first.');
     }
 
-    if (record.checkOut) {
-      throw new BadRequestException('Already checked out today');
-    }
-
-    const workingSchedule = await this.prisma.workingSchedule.findUnique({
-      where: { tenantId_name: { tenantId, name: 'Standard' } },
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { workingSchedule: { select: { fullDayMinimumMinutes: true } } },
     });
 
-    const checkOut = new Date();
-    const totalMinutes = Math.floor((checkOut.getTime() - new Date(record.checkIn).getTime()) / 60000);
-    const avgHours = workingSchedule
-      ? workingSchedule.workingHoursPerDay
-      : 480;
-    const halfDayThreshold = avgHours * 0.5;
-    const status = totalMinutes < halfDayThreshold ? 'HALF_DAY' : record.status;
+    const fullDayThreshold = user?.workingSchedule?.fullDayMinimumMinutes ?? 480;
+    const sessionMinutes = Math.floor((now.getTime() - new Date(openLog.checkIn).getTime()) / 60000);
 
-    const checkOutData: any = {
-      checkOut,
+    const checkOutLogData: any = {
+      checkOut: now,
+      durationMinutes: sessionMinutes,
       checkOutIp: NetworkUtil.getClientIp(request),
-      totalMinutes,
-      status,
+      checkOutMethod: dto.latitude && dto.longitude ? 'GEOLOCATION' : 'IP_RANGE',
     };
 
     if (dto.latitude && dto.longitude) {
-      checkOutData.checkOutLatitude = dto.latitude;
-      checkOutData.checkOutLongitude = dto.longitude;
-      checkOutData.checkOutMethod = 'GEOLOCATION';
-    } else {
-      checkOutData.checkOutMethod = 'IP_RANGE';
+      checkOutLogData.checkOutLatitude = dto.latitude;
+      checkOutLogData.checkOutLongitude = dto.longitude;
     }
 
-    return await this.attendanceRepository.update(record.id, checkOutData);
+    return await this.prisma.$transaction(async (tx) => {
+      await this.attendanceLogRepository.update(openLog.id, checkOutLogData, tx as any);
+
+      const allLogs = await this.attendanceLogRepository.findAllByAttendance(record.id, tx as any);
+      const totalMinutes = allLogs.reduce((sum, log) => {
+        if (log.id === openLog.id) return sum + sessionMinutes;
+        return sum + (log.durationMinutes ?? 0);
+      }, 0);
+
+      const attendanceUpdate: any = {
+        totalMinutes,
+        lastCheckOut: now,
+      };
+
+      if (totalMinutes >= fullDayThreshold) {
+        attendanceUpdate.status = 'PRESENT';
+        attendanceUpdate.isFinalStatus = true;
+      }
+
+      return await this.attendanceRepository.update(record.id, attendanceUpdate, tx as any);
+    });
   }
 
   async getMyAttendance(tenantId: string, userId: string) {
     return this.attendanceRepository.findManyByUser(tenantId, userId);
+  }
+
+  async getTodayAttendance(tenantId: string, userId: string) {
+    const today = this.getToday();
+    return this.attendanceRepository.findByUserAndDate(tenantId, userId, today);
   }
 
   async getAllAttendance(tenantId: string) {

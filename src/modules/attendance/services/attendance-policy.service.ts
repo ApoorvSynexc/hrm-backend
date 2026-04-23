@@ -15,6 +15,28 @@ import { Status } from '../../../../generated/prisma/client.js';
 export class AttendancePolicyService {
   constructor(private prisma: PrismaService) {}
 
+  private async ensureSingleActiveTenantPolicy(
+    tenantId: string,
+    excludePolicyId?: string,
+  ) {
+    const existingTenantPolicy = await this.prisma.attendancePolicy.findFirst({
+      where: {
+        tenantId,
+        scopeLevel: 'TENANT',
+        isActive: true,
+        status: Status.ACTIVE,
+        ...(excludePolicyId ? { id: { not: excludePolicyId } } : {}),
+      },
+      select: { id: true, name: true },
+    });
+
+    if (existingTenantPolicy) {
+      throw new BadRequestException(
+        `An active tenant attendance policy already exists: "${existingTenantPolicy.name}"`,
+      );
+    }
+  }
+
   async createPolicy(tenantId: string, userId: string, dto: CreateAttendancePolicyDto) {
     const scopeLevel = dto.scopeLevel ?? 'TENANT';
 
@@ -30,6 +52,12 @@ export class AttendancePolicyService {
     }
     if (scopeLevel === 'TEAM' && !dto.teamId) {
       throw new BadRequestException('teamId is required for TEAM scope');
+    }
+
+    const isActive = dto.isActive ?? true;
+
+    if (scopeLevel === 'TENANT' && isActive) {
+      await this.ensureSingleActiveTenantPolicy(tenantId);
     }
 
     const data = this.sanitizePolicy({
@@ -48,7 +76,7 @@ export class AttendancePolicyService {
       wifiSsids: dto.wifiSsids,
       validFrom: dto.validFrom ? new Date(dto.validFrom) : new Date(),
       validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
-      isActive: dto.isActive ?? true,
+      isActive,
       status: Status.ACTIVE,
       createdBy: userId,
     });
@@ -63,6 +91,11 @@ export class AttendancePolicyService {
 
     if (!policy || policy.tenantId !== tenantId) {
       throw new NotFoundException('Policy not found');
+    }
+
+    const nextIsActive = dto.isActive ?? policy.isActive;
+    if (policy.scopeLevel === 'TENANT' && nextIsActive) {
+      await this.ensureSingleActiveTenantPolicy(tenantId, policyId);
     }
 
     const data = this.sanitizePolicy({

@@ -54,8 +54,11 @@ tenantId    → which company this belongs to
 module      → REGULARIZATION | LEAVE
 name        → "Default Regularization Approval"
 isDefault   → true/false (only one default per module per tenant)
+isSystem    → true = auto-created at tenant setup; cannot be deleted by admin
 status      → ACTIVE | INACTIVE | DELETED
 ```
+
+> **System workflow protection:** `isSystem: true` workflows are created automatically when a tenant is provisioned (one per module). Admins can create custom workflows and set them as default, but the system workflow can never be deleted. If an admin deletes the current default (custom) workflow, the system workflow is automatically restored as the default for that module. This guarantees there is always a fallback approval chain.
 
 ### 2. `ApprovalStep`
 
@@ -588,6 +591,35 @@ Every new tenant gets two default workflows:
 | 2 | ROLE: HR | No | None |
 
 Admin can modify these or create entirely new workflows per module at any time.
+
+---
+
+## Future Improvements
+
+### Circular RM Reference Not Prevented
+
+**What it is:** If HR updates Employee A's `reportingManagerId` to Employee B, and then someone updates Employee B's `reportingManagerId` to Employee A, a circular reference is formed (A → B → A). The backend does not currently detect this.
+
+**Why it doesn't crash today:** The approval engine only resolves the RM one level up — it reads `user.reportingManagerId` once to find who should approve Step 1. It never walks the chain recursively, so the cycle is never traversed.
+
+**Why it's still a problem:** It's a data inconsistency. Org chart views and any future feature that walks the reporting chain (e.g., bulk escalation, hierarchy reports) would loop infinitely or produce wrong results.
+
+**Where to fix:** `PUT /employee` in `src/modules/employee/employee.service.ts` — add a cycle-detection check before saving `reportingManagerId`. Walk the chain upward from the new manager's `reportingManagerId` until you hit `null` or the employee's own ID (which means a cycle exists).
+
+```typescript
+// Pseudocode for cycle detection
+async function wouldCreateCycle(tenantId, employeeId, newManagerId): boolean {
+  let currentId = newManagerId;
+  while (currentId !== null) {
+    if (currentId === employeeId) return true; // cycle detected
+    const manager = await prisma.user.findFirst({ where: { id: currentId, tenantId } });
+    currentId = manager?.reportingManagerId ?? null;
+  }
+  return false;
+}
+```
+
+**Priority:** Low — not a blocker for current use cases, but worth implementing before adding any org-chart or hierarchy traversal features.
 
 ---
 

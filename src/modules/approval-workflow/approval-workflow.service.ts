@@ -84,8 +84,26 @@ export class ApprovalWorkflowService {
   }
 
   async deleteWorkflow(tenantId: string, id: string) {
-    await this.getWorkflow(tenantId, id);
-    return this.workflowRepository.update({ id }, { status: 'DELETED' });
+    const workflow = await this.getWorkflow(tenantId, id);
+
+    if ((workflow as any).isSystem) {
+      throw new BadRequestException('System-generated workflows cannot be deleted');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.workflowRepository.update({ id }, { status: 'DELETED' }, tx as any);
+
+      // If deleted workflow was the default, restore the system workflow as default
+      if ((workflow as any).isDefault) {
+        await this.workflowRepository.restoreSystemDefault(
+          tenantId,
+          (workflow as any).module,
+          tx as any,
+        );
+      }
+
+      return { id };
+    });
   }
 
   async getDefaultWorkflow(tenantId: string, module: string) {

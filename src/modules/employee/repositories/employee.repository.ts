@@ -28,12 +28,16 @@ export class EmployeeRepository {
   ) {
     return this.client(tx).user.findFirst({
       where: { employeeCode: { not: null }, status: { not: Status.DELETED }, ...where },
+      omit: { passwordHash: true },
       include: {
         role: true,
         department: true,
+        reportingManager: {
+          select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true },
+        },
         ...(include && include),
       },
-    });
+    } as any);
   }
 
   /**
@@ -78,16 +82,20 @@ export class EmployeeRepository {
     const [employees, total] = await Promise.all([
       this.client(tx).user.findMany({
         where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
+        omit: { passwordHash: true },
         include: {
           role: true,
           department: true,
           tenant: { select: { id: true, name: true, slug: true } },
+          reportingManager: {
+            select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true },
+          },
           ...(include && include),
         },
         skip: pagination ? skip : undefined,
         take: pagination ? limit : undefined,
         orderBy: { createdAt: 'desc' },
-      }),
+      } as any),
       this.client(tx).user.count({
         where: Object.keys(finalWhere).length > 0 ? finalWhere : undefined,
       }),
@@ -115,8 +123,15 @@ export class EmployeeRepository {
   async create(data: any, tx?: TX) {
     return this.client(tx).user.create({
       data,
-      include: { role: true, department: true },
-    });
+      omit: { passwordHash: true },
+      include: {
+        role: true,
+        department: true,
+        reportingManager: {
+          select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true },
+        },
+      },
+    } as any);
   }
 
   /**
@@ -126,8 +141,15 @@ export class EmployeeRepository {
     return this.client(tx).user.update({
       where: where as any,
       data,
-      include: { role: true, department: true },
-    });
+      omit: { passwordHash: true },
+      include: {
+        role: true,
+        department: true,
+        reportingManager: {
+          select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true },
+        },
+      },
+    } as any);
   }
 
   /**

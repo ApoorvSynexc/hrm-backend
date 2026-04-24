@@ -18,8 +18,9 @@ export class EmployeeService {
 
   /**
    * Create a new employee
+   * creatorId: the userId of the person creating this record (used for auto RM assignment)
    */
-  async createEmployee(tenantId: string, dto: CreateEmployeeDto) {
+  async createEmployee(tenantId: string, dto: CreateEmployeeDto, creatorId?: string) {
     // Check email uniqueness in tenant
     const existingEmail = await this.employeeRepository.find({
       tenantId,
@@ -60,10 +61,30 @@ export class EmployeeService {
     // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    // Verify reporting manager belongs to this tenant if provided
-    if (dto.reportingManagerId) {
+    // Resolve reportingManagerId:
+    // - If explicitly provided in DTO → validate and use it (any role)
+    // - If not provided AND creating HR or RM → auto-assign creator (Admin→HR, HR→RM hierarchy)
+    // - If not provided AND creating EMPLOYEE → null (frontend must pick from dropdown)
+    let roleNameForNew: string | null = null;
+    if (dto.roleId && !dto.reportingManagerId) {
+      const roleRecord = await this.prisma.role.findFirst({
+        where: { id: dto.roleId, tenantId },
+        select: { name: true },
+      });
+      roleNameForNew = roleRecord?.name ?? null;
+    }
+
+    const autoAssignCreator =
+      !dto.reportingManagerId &&
+      creatorId &&
+      roleNameForNew !== null &&
+      ['HR', 'RM'].includes(roleNameForNew);
+
+    const resolvedManagerId = dto.reportingManagerId ?? (autoAssignCreator ? creatorId : null);
+
+    if (resolvedManagerId) {
       const manager = await this.prisma.user.findFirst({
-        where: { id: dto.reportingManagerId, tenantId, status: { not: Status.DELETED } },
+        where: { id: resolvedManagerId, tenantId, status: { not: Status.DELETED } },
       });
       if (!manager) {
         throw new BadRequestException('Reporting manager not found in this tenant');
@@ -83,7 +104,7 @@ export class EmployeeService {
       roleId: dto.roleId,
       hireDate: new Date(dto.hireDate),
       salary: dto.salary ? parseFloat(dto.salary) : null,
-      reportingManagerId: dto.reportingManagerId || null,
+      reportingManagerId: resolvedManagerId,
       passwordHash,
       employmentStatus: EmploymentStatus.ACTIVE,
       status: Status.ACTIVE,
@@ -214,6 +235,30 @@ export class EmployeeService {
         employmentStatus: EmploymentStatus.TERMINATED,
       },
     );
+  }
+
+  /**
+   * Get users who can be assigned as Reporting Manager.
+   * Returns ADMIN, HR, and RM users — used to populate the RM dropdown on the frontend.
+   */
+  async getManagersList(tenantId: string) {
+    const managers = await (this.prisma as any).user.findMany({
+      where: {
+        tenantId,
+        status: { not: Status.DELETED },
+        role: { name: { in: ['ADMIN', 'HR', 'RM'] } },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        employeeCode: true,
+        role: { select: { id: true, name: true } },
+      },
+      orderBy: [{ role: { name: 'asc' } }, { firstName: 'asc' }],
+    });
+    return managers;
   }
 
   /**

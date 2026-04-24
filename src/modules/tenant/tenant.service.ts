@@ -268,6 +268,7 @@ export class TenantService {
               module,
               description: 'RM approves first, then HR',
               isDefault: true,
+              isSystem: true,
               status: 'ACTIVE',
             },
           });

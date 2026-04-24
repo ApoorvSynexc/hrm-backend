@@ -21,22 +21,38 @@ export class EmployeeController {
 
   /**
    * Create a new employee
-   * POST /employees
+   * POST /employee
+   * reportingManagerId auto-defaults to creator if not provided in body.
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Permissions('create:employee')
   async create(
     @CurrentUser('tenantId') tenantId: string,
+    @CurrentUser('sub') creatorId: string,
     @Body() dto: CreateEmployeeDto,
   ) {
-    const employee = await this.employeeService.createEmployee(tenantId, dto);
+    const employee = await this.employeeService.createEmployee(tenantId, dto, creatorId);
     return { message: 'common.created', data: employee };
   }
 
   /**
+   * GET /employee/managers
+   * Returns ADMIN, HR, and RM users for the RM assignment dropdown.
+   * Accessible by ADMIN and HR roles (anyone who can create/update employees).
+   */
+  @Get('managers')
+  @Permissions('read:employee')
+  async getManagers(
+    @CurrentUser('tenantId') tenantId: string,
+  ) {
+    const managers = await this.employeeService.getManagersList(tenantId);
+    return { message: 'common.fetched', data: managers };
+  }
+
+  /**
    * List all employees
-   * GET /employees
+   * GET /employee/list
    */
   @Get("list")
   @Permissions('read:employee')

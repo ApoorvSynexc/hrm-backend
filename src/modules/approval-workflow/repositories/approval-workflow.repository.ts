@@ -65,4 +65,16 @@ export class ApprovalWorkflowRepository {
       data: { isDefault: false },
     });
   }
+
+  async restoreSystemDefault(tenantId: string, module: string, tx?: TX) {
+    const systemWorkflow = await this.client(tx).approvalWorkflow.findFirst({
+      where: { tenantId, module: module as any, isSystem: true, status: 'ACTIVE' } as any,
+    });
+    if (systemWorkflow) {
+      await this.client(tx).approvalWorkflow.update({
+        where: { id: systemWorkflow.id },
+        data: { isDefault: true },
+      });
+    }
+  }
 }

@@ -325,5 +325,29 @@ export const DEFAULT_PERMISSIONS = [
     description: 'Delete working schedules',
     tenantId: null,
   },
+  // Attendance regularization — admin force-approve/reject override
+  {
+    id: '660e8400-e29b-41d4-a716-446655440075',
+    action: 'manage',
+    subject: 'attendance_regularization',
+    description: 'Admin override: force approve or reject any regularization step',
+    tenantId: null,
+  },
+
+  // Approval workflow management
+  {
+    id: '660e8400-e29b-41d4-a716-446655440073',
+    action: 'manage',
+    subject: 'approval_workflow',
+    description: 'Create, update, and delete approval workflows',
+    tenantId: null,
+  },
+  {
+    id: '660e8400-e29b-41d4-a716-446655440074',
+    action: 'read',
+    subject: 'approval_workflow',
+    description: 'View approval workflows and steps',
+    tenantId: null,
+  },
 ] as const;
 

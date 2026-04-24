@@ -74,6 +74,11 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'update:attendance_regularization',
     'delete:attendance_regularization',
     'approve:attendance_regularization',
+    'manage:attendance_regularization',  // admin override
+
+    // Approval Workflow Management
+    'manage:approval_workflow',
+    'read:approval_workflow',
   ],
 
   HR: [
@@ -128,6 +133,9 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     'update:attendance_regularization',
     'delete:attendance_regularization',
     'approve:attendance_regularization',
+
+    // Approval Workflow (read-only for HR)
+    'read:approval_workflow',
   ],
 
   RM: [

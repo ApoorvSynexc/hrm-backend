@@ -38,4 +38,8 @@ export class UpdateEmployeeDto {
   @IsDecimal()
   @IsOptional()
   salary?: string;
+
+  @IsString()
+  @IsOptional()
+  reportingManagerId?: string | null;
 }

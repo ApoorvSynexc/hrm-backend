@@ -43,4 +43,8 @@ export class CreateEmployeeDto {
   @IsDecimal()
   @IsOptional()
   salary?: string; // Store as decimal string to preserve precision
+
+  @IsString()
+  @IsOptional()
+  reportingManagerId?: string;
 }

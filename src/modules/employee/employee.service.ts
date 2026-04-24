@@ -60,6 +60,16 @@ export class EmployeeService {
     // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
+    // Verify reporting manager belongs to this tenant if provided
+    if (dto.reportingManagerId) {
+      const manager = await this.prisma.user.findFirst({
+        where: { id: dto.reportingManagerId, tenantId, status: { not: Status.DELETED } },
+      });
+      if (!manager) {
+        throw new BadRequestException('Reporting manager not found in this tenant');
+      }
+    }
+
     // Create employee
     return await this.employeeRepository.create({
       tenantId,
@@ -73,10 +83,11 @@ export class EmployeeService {
       roleId: dto.roleId,
       hireDate: new Date(dto.hireDate),
       salary: dto.salary ? parseFloat(dto.salary) : null,
+      reportingManagerId: dto.reportingManagerId || null,
       passwordHash,
       employmentStatus: EmploymentStatus.ACTIVE,
       status: Status.ACTIVE,
-    });
+    } as any);
   }
 
   /**
@@ -168,6 +179,22 @@ export class EmployeeService {
     if (dto.roleId !== undefined) updateData.roleId = dto.roleId;
     if (dto.hireDate !== undefined) updateData.hireDate = new Date(dto.hireDate);
     if (dto.salary !== undefined) updateData.salary = parseFloat(dto.salary);
+    if (dto.reportingManagerId !== undefined) {
+      if (dto.reportingManagerId === null) {
+        updateData.reportingManagerId = null;
+      } else {
+        if (dto.reportingManagerId === employeeId) {
+          throw new BadRequestException('An employee cannot be their own reporting manager');
+        }
+        const manager = await this.prisma.user.findFirst({
+          where: { id: dto.reportingManagerId, tenantId, status: { not: Status.DELETED } },
+        });
+        if (!manager) {
+          throw new BadRequestException('Reporting manager not found in this tenant');
+        }
+        updateData.reportingManagerId = dto.reportingManagerId;
+      }
+    }
 
     return await this.employeeRepository.update({ id: employeeId }, updateData);
   }

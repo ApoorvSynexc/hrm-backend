@@ -18,6 +18,7 @@ import { LeaveBalanceModule } from './modules/leave-balance/leave-balance.module
 import { DesignationModule } from './modules/designation/designation.module.js';
 import { WorkingScheduleModule } from './modules/working-schedule/working-schedule.module.js';
 import { RegularizationModule } from './modules/regularization/regularization.module.js';
+import { ApprovalWorkflowModule } from './modules/approval-workflow/approval-workflow.module.js';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { RegularizationModule } from './modules/regularization/regularization.mo
     DesignationModule,
     WorkingScheduleModule,
     RegularizationModule,
+    ApprovalWorkflowModule,
   ],
   controllers: [AppController],
   providers: [AppService],

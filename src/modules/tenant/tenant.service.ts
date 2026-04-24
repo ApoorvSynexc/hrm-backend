@@ -145,6 +145,11 @@ export class TenantService {
           },
         });
 
+        // 5. Seed default approval workflows (REGULARIZATION + LEAVE)
+        //    These are seeded after roles are created so we can reference the RM/HR roleIds.
+        //    We defer role-ID resolution to after the role creation loop below,
+        //    so workflows are created at the end of the transaction.
+
       // 2. Get tenant roles from constants (exclude SUPER_ADMIN which is global-only)
       const tenantRolesToCreate = DEFAULT_ROLES.filter(
         (role) => role.name !== 'SUPER_ADMIN',
@@ -249,6 +254,53 @@ export class TenantService {
         id: createdUser.id,
         email: createdUser.email,
       };
+
+      // Resolve RM and HR role IDs to wire up default approval workflows
+      const rmRole = await this.roleRepository.find({ tenantId: newTenant.id, name: 'RM' }, tx);
+      const hrRole = await this.roleRepository.find({ tenantId: newTenant.id, name: 'HR' }, tx);
+
+      if (rmRole && hrRole) {
+        for (const module of ['REGULARIZATION', 'LEAVE'] as const) {
+          const workflow = await (tx as any).approvalWorkflow.create({
+            data: {
+              tenantId: newTenant.id,
+              name: `Default ${module === 'REGULARIZATION' ? 'Regularization' : 'Leave'} Approval`,
+              module,
+              description: 'RM approves first, then HR',
+              isDefault: true,
+              status: 'ACTIVE',
+            },
+          });
+
+          // Step 1: Direct Manager (RM)
+          // isSkippable=true  → if employee has no RM assigned, engine skips to HR automatically
+          // escalationAfterHours=48 → if RM doesn't act in 48h, cron auto-skips to HR
+          await (tx as any).approvalStep.create({
+            data: {
+              workflowId: workflow.id,
+              stepNumber: 1,
+              name: 'Reporting Manager Approval',
+              approverType: 'DIRECT_MANAGER',
+              isSkippable: true,
+              escalationAfterHours: 48,
+            },
+          });
+
+          // Step 2: HR Role
+          // Not skippable — someone in HR must always approve
+          await (tx as any).approvalStep.create({
+            data: {
+              workflowId: workflow.id,
+              stepNumber: 2,
+              name: 'HR Approval',
+              approverType: 'ROLE',
+              approverRoleId: hrRole.id,
+              isSkippable: false,
+              escalationAfterHours: null,
+            },
+          });
+        }
+      }
 
       return {
         tenantId: newTenant.id,
@@ -421,6 +473,20 @@ export class TenantService {
 
       // Delete attendance regularizations
       await tx.attendanceRegularization.deleteMany({
+        where: { tenantId },
+      });
+
+      // Delete approval workflow instances and workflows
+      await (tx as any).requestApprovalStepInstance.deleteMany({
+        where: { instance: { tenantId } },
+      });
+      await (tx as any).requestApprovalInstance.deleteMany({
+        where: { tenantId },
+      });
+      await (tx as any).approvalStep.deleteMany({
+        where: { workflow: { tenantId } },
+      });
+      await (tx as any).approvalWorkflow.deleteMany({
         where: { tenantId },
       });
 

@@ -229,6 +229,10 @@ export class RegularizationService {
             : {}),
         },
       );
+
+      if (outcome === 'APPROVED') {
+        await this.applyRegularizationToAttendance(tenantId, regularizationId);
+      }
     }
 
     return this.getById(tenantId, regularizationId);
@@ -261,9 +265,102 @@ export class RegularizationService {
           ...(outcome === 'REJECTED' && dto.reason ? { rejectionReason: dto.reason } : {}),
         },
       );
+
+      if (outcome === 'APPROVED') {
+        await this.applyRegularizationToAttendance(tenantId, regularizationId);
+      }
     }
 
     return this.getById(tenantId, regularizationId);
+  }
+
+  /**
+   * When a regularization is approved, upsert the Attendance record for that day
+   * with the requested check-in/out and mark it PRESENT + isFinalStatus = true.
+   */
+  private async applyRegularizationToAttendance(tenantId: string, regularizationId: string) {
+    const reg = await this.prisma.attendanceRegularization.findUnique({
+      where: { id: regularizationId },
+    });
+    if (!reg) return;
+
+    const checkIn = reg.requestedCheckIn;
+    const checkOut = reg.requestedCheckOut;
+    const totalMinutes =
+      checkIn && checkOut
+        ? Math.round((checkOut.getTime() - checkIn.getTime()) / 60000)
+        : null;
+
+    // Find the day boundaries to locate any existing attendance record for this date,
+    // regardless of what time component was stored.
+    const dayStart = new Date(reg.date);
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart.getTime() + 86400000);
+
+    const existing = await this.prisma.attendance.findFirst({
+      where: { tenantId, userId: reg.userId, date: { gte: dayStart, lt: dayEnd } },
+    });
+
+    let attendance: { id: string };
+
+    if (existing) {
+      attendance = await this.prisma.attendance.update({
+        where: { id: existing.id },
+        data: {
+          ...(checkIn ? { firstCheckIn: checkIn } : {}),
+          ...(checkOut ? { lastCheckOut: checkOut } : {}),
+          ...(totalMinutes !== null ? { totalMinutes } : {}),
+          status: 'PRESENT',
+          isFinalStatus: true,
+        },
+      });
+    } else {
+      attendance = await this.prisma.attendance.create({
+        data: {
+          tenantId,
+          userId: reg.userId,
+          date: dayStart,
+          firstCheckIn: checkIn,
+          lastCheckOut: checkOut,
+          totalMinutes,
+          status: 'PRESENT',
+          isFinalStatus: true,
+          isLate: false,
+        },
+      });
+    }
+
+    // Link regularization → attendance
+    await this.prisma.attendanceRegularization.update({
+      where: { id: regularizationId },
+      data: { attendanceId: attendance.id },
+    });
+
+    // Upsert the attendance log for this session
+    if (checkIn) {
+      const existingLog = await this.prisma.attendanceLog.findFirst({
+        where: { attendanceId: attendance.id, tenantId },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      if (existingLog) {
+        await this.prisma.attendanceLog.update({
+          where: { id: existingLog.id },
+          data: { checkIn, checkOut: checkOut ?? null, durationMinutes: totalMinutes },
+        });
+      } else {
+        await this.prisma.attendanceLog.create({
+          data: {
+            tenantId,
+            attendanceId: attendance.id,
+            userId: reg.userId,
+            checkIn,
+            checkOut: checkOut ?? null,
+            durationMinutes: totalMinutes,
+          },
+        });
+      }
+    }
   }
 
   /**

@@ -255,52 +255,30 @@ export class TenantService {
         email: createdUser.email,
       };
 
-      // Resolve RM and HR role IDs to wire up default approval workflows
-      const rmRole = await this.roleRepository.find({ tenantId: newTenant.id, name: 'RM' }, tx);
-      const hrRole = await this.roleRepository.find({ tenantId: newTenant.id, name: 'HR' }, tx);
+      // Seed default approval workflows (REGULARIZATION + LEAVE) — single step: Direct Manager only
+      for (const module of ['REGULARIZATION', 'LEAVE'] as const) {
+        const workflow = await (tx as any).approvalWorkflow.create({
+          data: {
+            tenantId: newTenant.id,
+            name: `Default ${module === 'REGULARIZATION' ? 'Regularization' : 'Leave'} Approval`,
+            module,
+            description: "Employee's reporting manager approves",
+            isDefault: true,
+            isSystem: true,
+            status: 'ACTIVE',
+          },
+        });
 
-      if (rmRole && hrRole) {
-        for (const module of ['REGULARIZATION', 'LEAVE'] as const) {
-          const workflow = await (tx as any).approvalWorkflow.create({
-            data: {
-              tenantId: newTenant.id,
-              name: `Default ${module === 'REGULARIZATION' ? 'Regularization' : 'Leave'} Approval`,
-              module,
-              description: 'RM approves first, then HR',
-              isDefault: true,
-              isSystem: true,
-              status: 'ACTIVE',
-            },
-          });
-
-          // Step 1: Direct Manager (RM)
-          // isSkippable=true  → if employee has no RM assigned, engine skips to HR automatically
-          // escalationAfterHours=48 → if RM doesn't act in 48h, cron auto-skips to HR
-          await (tx as any).approvalStep.create({
-            data: {
-              workflowId: workflow.id,
-              stepNumber: 1,
-              name: 'Reporting Manager Approval',
-              approverType: 'DIRECT_MANAGER',
-              isSkippable: true,
-              escalationAfterHours: 48,
-            },
-          });
-
-          // Step 2: HR Role
-          // Not skippable — someone in HR must always approve
-          await (tx as any).approvalStep.create({
-            data: {
-              workflowId: workflow.id,
-              stepNumber: 2,
-              name: 'HR Approval',
-              approverType: 'ROLE',
-              approverRoleId: hrRole.id,
-              isSkippable: false,
-              escalationAfterHours: null,
-            },
-          });
-        }
+        await (tx as any).approvalStep.create({
+          data: {
+            workflowId: workflow.id,
+            stepNumber: 1,
+            name: 'Reporting Manager Approval',
+            approverType: 'DIRECT_MANAGER',
+            isSkippable: false,
+            escalationAfterHours: null,
+          },
+        });
       }
 
       return {

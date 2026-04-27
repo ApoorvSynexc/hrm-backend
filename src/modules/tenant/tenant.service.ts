@@ -50,15 +50,15 @@ export class TenantService {
     tenantId: string,
     tx?: any
   ): Promise<string> {
-    // First try: check if base slug is available
+    // First try: check if base slug is available (exclude soft-deleted tenants)
     const existingBase = await this.prisma.tenant.findFirst({
-      where: { slug: baseSlug },
+      where: { slug: baseSlug, status: { not: 'DELETED' } },
     });
     if (!existingBase) {
       return baseSlug;
     }
 
-    // If base slug taken, use counter to generate unique variant
+    // If base slug taken by an active tenant, use counter to generate unique variant
     const nextNum = await this.counterRepository.getNextSequence(
       tenantId,
       'slug-variant',
@@ -474,10 +474,10 @@ export class TenantService {
         where: { tenantId },
       });
 
-      // Soft delete the tenant itself
+      // Soft delete the tenant itself and clear slug to free the unique slot
       await tx.tenant.update({
         where: { id: tenantId },
-        data: { status: 'DELETED' },
+        data: { status: 'DELETED', slug: null },
       });
     });
   }

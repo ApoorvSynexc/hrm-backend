@@ -86,6 +86,7 @@ export class EmployeeRepository {
         include: {
           role: true,
           department: true,
+          designation: true,
           tenant: { select: { id: true, name: true, slug: true } },
           reportingManager: {
             select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true },

@@ -50,15 +50,15 @@ export class TenantService {
     tenantId: string,
     tx?: any
   ): Promise<string> {
-    // First try: check if base slug is available
+    // First try: check if base slug is available (exclude soft-deleted tenants)
     const existingBase = await this.prisma.tenant.findFirst({
-      where: { slug: baseSlug },
+      where: { slug: baseSlug, status: { not: 'DELETED' } },
     });
     if (!existingBase) {
       return baseSlug;
     }
 
-    // If base slug taken, use counter to generate unique variant
+    // If base slug taken by an active tenant, use counter to generate unique variant
     const nextNum = await this.counterRepository.getNextSequence(
       tenantId,
       'slug-variant',
@@ -255,52 +255,30 @@ export class TenantService {
         email: createdUser.email,
       };
 
-      // Resolve RM and HR role IDs to wire up default approval workflows
-      const rmRole = await this.roleRepository.find({ tenantId: newTenant.id, name: 'RM' }, tx);
-      const hrRole = await this.roleRepository.find({ tenantId: newTenant.id, name: 'HR' }, tx);
+      // Seed default approval workflows (REGULARIZATION + LEAVE) — single step: Direct Manager only
+      for (const module of ['REGULARIZATION', 'LEAVE'] as const) {
+        const workflow = await (tx as any).approvalWorkflow.create({
+          data: {
+            tenantId: newTenant.id,
+            name: `Default ${module === 'REGULARIZATION' ? 'Regularization' : 'Leave'} Approval`,
+            module,
+            description: "Employee's reporting manager approves",
+            isDefault: true,
+            isSystem: true,
+            status: 'ACTIVE',
+          },
+        });
 
-      if (rmRole && hrRole) {
-        for (const module of ['REGULARIZATION', 'LEAVE'] as const) {
-          const workflow = await (tx as any).approvalWorkflow.create({
-            data: {
-              tenantId: newTenant.id,
-              name: `Default ${module === 'REGULARIZATION' ? 'Regularization' : 'Leave'} Approval`,
-              module,
-              description: 'RM approves first, then HR',
-              isDefault: true,
-              isSystem: true,
-              status: 'ACTIVE',
-            },
-          });
-
-          // Step 1: Direct Manager (RM)
-          // isSkippable=true  → if employee has no RM assigned, engine skips to HR automatically
-          // escalationAfterHours=48 → if RM doesn't act in 48h, cron auto-skips to HR
-          await (tx as any).approvalStep.create({
-            data: {
-              workflowId: workflow.id,
-              stepNumber: 1,
-              name: 'Reporting Manager Approval',
-              approverType: 'DIRECT_MANAGER',
-              isSkippable: true,
-              escalationAfterHours: 48,
-            },
-          });
-
-          // Step 2: HR Role
-          // Not skippable — someone in HR must always approve
-          await (tx as any).approvalStep.create({
-            data: {
-              workflowId: workflow.id,
-              stepNumber: 2,
-              name: 'HR Approval',
-              approverType: 'ROLE',
-              approverRoleId: hrRole.id,
-              isSkippable: false,
-              escalationAfterHours: null,
-            },
-          });
-        }
+        await (tx as any).approvalStep.create({
+          data: {
+            workflowId: workflow.id,
+            stepNumber: 1,
+            name: 'Reporting Manager Approval',
+            approverType: 'DIRECT_MANAGER',
+            isSkippable: false,
+            escalationAfterHours: null,
+          },
+        });
       }
 
       return {
@@ -496,10 +474,10 @@ export class TenantService {
         where: { tenantId },
       });
 
-      // Soft delete the tenant itself
+      // Soft delete the tenant itself and clear slug to free the unique slot
       await tx.tenant.update({
         where: { id: tenantId },
-        data: { status: 'DELETED' },
+        data: { status: 'DELETED', slug: null },
       });
     });
   }

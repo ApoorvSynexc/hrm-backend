@@ -52,8 +52,8 @@ export class AccountService {
 
     // Update user in transaction
     return await this.prisma.$transaction(async (tx) => {
-      // Update user - only allow basic personal details
-      const updateData: any = {};
+      // Build user update data
+      const updateData: Record<string, any> = {};
       if (dto.email !== undefined) updateData.email = dto.email;
       if (dto.firstName !== undefined) updateData.firstName = dto.firstName;
       if (dto.lastName !== undefined) updateData.lastName = dto.lastName;
@@ -68,73 +68,59 @@ export class AccountService {
         tx,
       );
 
-      // Update contact if provided
-      if (dto.contact) {
+      // Handle contact and mobile number updates in one pass
+      if (dto.contact || dto.mobileNumber) {
         let contact = await tx.contact.findUnique({
           where: { userId },
         });
 
-        if (contact) {
+        // Create contact if it doesn't exist and we need to update contact or mobile
+        if (!contact) {
+          contact = await tx.contact.create({
+            data: {
+              userId,
+              email: dto.contact?.email || '',
+              isEmailVerified: false,
+            },
+          });
+        }
+
+        // Update contact email if provided
+        if (dto.contact?.email) {
           await tx.contact.update({
-            where: { userId },
+            where: { id: contact.id },
             data: { email: dto.contact.email },
           });
-        } else {
-          await tx.contact.create({
-            data: {
-              userId,
-              email: dto.contact.email || '',
-              isEmailVerified: false,
-            },
-          });
-        }
-      }
-
-      // Update mobile number if provided
-      if (dto.mobileNumber) {
-        const contact = await tx.contact.findUnique({
-          where: { userId },
-        });
-
-        if (!contact) {
-          // Create contact first if it doesn't exist
-          await tx.contact.create({
-            data: {
-              userId,
-              email: '',
-              isEmailVerified: false,
-            },
-          });
         }
 
-        const contactData = await tx.contact.findUnique({
-          where: { userId },
-        });
+        // Update mobile number if provided
+        if (dto.mobileNumber) {
+          let mobileNumber = await tx.mobileNumber.findUnique({
+            where: { contactId: contact.id },
+          });
 
-        let mobileNumber = await tx.mobileNumber.findUnique({
-          where: { contactId: contactData!.id },
-        });
-        if (mobileNumber) {
-          await tx.mobileNumber.update({
-            where: { id: mobileNumber.id },
-            data: {
-              dialCode: dto.mobileNumber.dialCode,
-              iso2: dto.mobileNumber.iso2,
-              country: dto.mobileNumber.country,
-              number: dto.mobileNumber.number,
-            },
-          });
-        } else {
-          await tx.mobileNumber.create({
-            data: {
-              contactId: contactData!.id,
-              dialCode: dto.mobileNumber.dialCode || '',
-              iso2: dto.mobileNumber.iso2 || '',
-              country: dto.mobileNumber.country || '',
-              number: dto.mobileNumber.number || '',
-              isVerified: false,
-            },
-          });
+          if (mobileNumber) {
+            await tx.mobileNumber.update({
+              where: { id: mobileNumber.id },
+              data: {
+                dialCode: dto.mobileNumber.dialCode,
+                iso2: dto.mobileNumber.iso2,
+                country: dto.mobileNumber.country,
+                number: dto.mobileNumber.number,
+              },
+            });
+          } else {
+            await tx.mobileNumber.create({
+              data: {
+                contactId: contact.id,
+                dialCode: dto.mobileNumber.dialCode || '',
+                iso2: dto.mobileNumber.iso2 || '',
+                country: dto.mobileNumber.country || '',
+                number: dto.mobileNumber.number || '',
+                isVerified: false,
+              },
+            });
+          }
         }
       }
 

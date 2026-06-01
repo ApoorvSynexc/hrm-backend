@@ -7,34 +7,8 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-
-class UpdateContactDto {
-  @IsEmail()
-  @IsOptional()
-  email?: string;
-}
-
-class UpdateMobileNumberDto {
-  @IsString()
-  @IsOptional()
-  @MaxLength(5)
-  dialCode?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(2)
-  iso2?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  country?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(20)
-  number?: string;
-}
+import { UpdateContactDto } from './update-contact.dto.js';
+import { UpdateMobileNumberDto } from './update-mobile-number.dto.js';
 
 export class UpdateUserDto {
   @IsEmail()

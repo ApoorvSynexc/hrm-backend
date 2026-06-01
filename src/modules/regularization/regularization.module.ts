@@ -8,6 +8,6 @@ import { ApprovalWorkflowModule } from '../approval-workflow/approval-workflow.m
   imports: [ApprovalWorkflowModule],
   controllers: [RegularizationController],
   providers: [RegularizationService, RegularizationRepository],
-  exports: [RegularizationService, RegularizationRepository],
+  exports: [RegularizationRepository],
 })
 export class RegularizationModule {}

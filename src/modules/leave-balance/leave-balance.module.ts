@@ -6,6 +6,5 @@ import { LeaveBalanceRepository } from './repositories/leave-balance.repository.
 @Module({
   controllers: [LeaveBalanceController],
   providers: [LeaveBalanceService, LeaveBalanceRepository],
-  exports: [LeaveBalanceService],
 })
 export class LeaveBalanceModule {}

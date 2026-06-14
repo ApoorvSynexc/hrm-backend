@@ -39,11 +39,11 @@ export class ApprovalWorkflowService {
           steps: {
             create: dto.steps.map((s) => ({
               stepNumber: s.stepNumber,
-              name: s.name,
               approverType: s.approverType,
               approverRoleId: s.approverRoleId ?? null,
               approverUserId: s.approverUserId ?? null,
-              isSkippable: s.isSkippable ?? false,
+              actionMode: s.actionMode ?? 'INTIMATION_ONLY',
+              escalationThresholdHours: s.escalationThresholdHours ?? null,
             })),
           },
         },

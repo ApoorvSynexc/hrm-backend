@@ -33,7 +33,7 @@ export class CreateStepDto {
   @Min(1)
   escalationThresholdHours?: number;
 
-  @IsIn(['APPROVAL_REQUIRED', 'INTIMATION_ONLY', 'APPROVAL_OPTIONAL'])
+  @IsIn(['APPROVAL_REQUIRED', 'INTIMATION_ONLY'])
   @IsOptional()
   actionMode?: string;
 }

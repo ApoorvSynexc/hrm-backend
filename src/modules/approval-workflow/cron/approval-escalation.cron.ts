@@ -10,12 +10,12 @@ export class ApprovalEscalationService {
 
   /**
    * Runs every hour.
-   * Finds all PENDING step instances that have exceeded their escalation window
-   * and auto-escalates them (skips if isSkippable, leaves pending otherwise).
+   * Finds all PENDING step instances that have exceeded their escalation window.
+   * Auto-skips INTIMATION_ONLY steps after escalationThresholdHours have passed.
+   * APPROVAL_REQUIRED steps remain pending and don't auto-skip.
    *
-   * Example: Step 1 has escalationAfterHours=48 and isSkippable=true.
-   * If the RM hasn't approved in 48 hours, the engine auto-skips Step 1
-   * and activates Step 2 (HR), so the request keeps moving.
+   * Example: Step 1 is INTIMATION_ONLY with escalationThresholdHours=48.
+   * If not acted upon in 48 hours, auto-skips and activates Step 2 (HR).
    */
   @Cron(CronExpression.EVERY_HOUR)
   async escalateOverdueApprovals() {
@@ -41,12 +41,12 @@ export class ApprovalEscalationService {
             escalated++;
             this.logger.log(
               `Escalated step instance ${stepInstance.id} ` +
-              `(overdue by ${this.getHoursOverdue(stepInstance.pendingSince, stepInstance.step.escalationAfterHours)}h)`,
+              `(overdue by ${this.getHoursOverdue(stepInstance.pendingSince, stepInstance.step.escalationThresholdHours)}h)`,
             );
           } else {
             skipped++;
             this.logger.warn(
-              `Step instance ${stepInstance.id} is overdue but not skippable — left pending.`,
+              `Step instance ${stepInstance.id} is overdue but APPROVAL_REQUIRED — left pending.`,
             );
           }
         } catch (err: any) {

@@ -122,7 +122,6 @@ enum ApprovalInstanceStatus {
 enum ApprovalStepActionMode {
   APPROVAL_REQUIRED
   INTIMATION_ONLY
-  APPROVAL_OPTIONAL
 }
 
 enum StepInstanceStatus {
@@ -678,7 +677,7 @@ model ApprovalStep {
   approverType         ApproverType
   approverRoleId       String?
   approverUserId       String?
-  actionMode           ApprovalStepActionMode @default(INTIMATION_ONLY)  // Step behavior: APPROVAL_REQUIRED, INTIMATION_ONLY, APPROVAL_OPTIONAL
+  actionMode           ApprovalStepActionMode @default(APPROVAL_REQUIRED)  // Step behavior: APPROVAL_REQUIRED or INTIMATION_ONLY
   escalationThresholdHours Int?      // Escalation after X hours; null = no escalation; only for APPROVAL steps
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt

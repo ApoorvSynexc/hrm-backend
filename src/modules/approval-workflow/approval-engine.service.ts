@@ -198,8 +198,8 @@ export class ApprovalEngineService {
     if (!stepInstance || stepInstance.status !== 'PENDING') return false;
     if (stepInstance.instance.status !== 'IN_PROGRESS') return false;
 
-    if (!stepInstance.step.isSkippable) {
-      // Cannot auto-skip — leave it pending (cron will retry next hour)
+    if (stepInstance.step.actionMode !== 'INTIMATION_ONLY') {
+      // Only auto-skip INTIMATION_ONLY steps — APPROVAL_REQUIRED steps stay pending
       return false;
     }
 
@@ -207,7 +207,7 @@ export class ApprovalEngineService {
       await this.instanceRepository.updateStepInstance(stepInstanceId, {
         status: 'SKIPPED',
         reviewedAt: new Date(),
-        comment: `Auto-escalated: no action taken within ${stepInstance.step.escalationAfterHours}h`,
+        comment: `Auto-escalated: no action taken within ${stepInstance.step.escalationThresholdHours}h`,
       }, tx);
 
       const freshInstance = await this.instanceRepository.findById(stepInstance.instanceId, tx);
@@ -237,18 +237,18 @@ export class ApprovalEngineService {
       where: {
         status: 'PENDING',
         pendingSince: { not: null },
-        step: { escalationAfterHours: { not: null } },
+        step: { escalationThresholdHours: { not: null } },
         instance: { status: 'IN_PROGRESS' },
       },
       include: {
-        step: { select: { escalationAfterHours: true, isSkippable: true } },
+        step: { select: { escalationThresholdHours: true, actionMode: true } },
       },
     });
 
     const now = Date.now();
     return (pendingSteps as any[]).filter((si: any) => {
       const hoursElapsed = (now - new Date(si.pendingSince).getTime()) / (1000 * 60 * 60);
-      return hoursElapsed >= si.step.escalationAfterHours;
+      return hoursElapsed >= si.step.escalationThresholdHours;
     });
   }
 
@@ -306,11 +306,11 @@ export class ApprovalEngineService {
 
       const hasNoApprover = !approverId && step.approverType !== 'ROLE';
 
-      if (hasNoApprover && step.isSkippable) {
+      if (hasNoApprover && step.actionMode === 'INTIMATION_ONLY') {
         await this.instanceRepository.updateStepInstance(si.id, {
           status: 'SKIPPED',
           reviewedAt: new Date(),
-          comment: 'Auto-skipped: no approver assigned',
+          comment: 'Auto-skipped: no approver assigned (intimation only)',
         }, tx);
         continue; // Try the next step
       }

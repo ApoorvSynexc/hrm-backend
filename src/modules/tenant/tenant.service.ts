@@ -272,25 +272,25 @@ export class TenantService {
             },
           });
 
-          // Step 1: Direct Manager (RM) - Approval Optional
+          // Step 1: Direct Manager (RM) - Intimation Only
           await (tx as any).approvalStep.create({
             data: {
               workflowId: workflow.id,
               stepNumber: 1,
               approverType: 'DIRECT_MANAGER',
-              actionMode: 'APPROVAL_OPTIONAL',
+              actionMode: 'INTIMATION_ONLY',
               escalationThresholdHours: null,
             },
           });
 
-          // Step 2: HR Role - Approval Optional
+          // Step 2: HR Role - Approval Required (final approval)
           await (tx as any).approvalStep.create({
             data: {
               workflowId: workflow.id,
               stepNumber: 2,
               approverType: 'ROLE',
               approverRoleId: hrRole.id,
-              actionMode: 'APPROVAL_OPTIONAL',
+              actionMode: 'APPROVAL_REQUIRED',
               escalationThresholdHours: null,
             },
           });

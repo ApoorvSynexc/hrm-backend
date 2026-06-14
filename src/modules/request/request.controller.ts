@@ -18,24 +18,36 @@ export class RequestController {
   constructor(private requestService: RequestService) {}
 
   /**
-   * GET /requests
-   * Get all requests based on user role
-   * - RM: only pending requests assigned to them
-   * - HR: only pending requests assigned to them
-   * - ADMIN: all requests
-   * - EMPLOYEE: only their own requests
+   * GET /requests?id=xxx (single) OR GET /requests (list)
+   * List: Get all requests based on user role
+   *   - RM: only pending requests assigned to them
+   *   - HR: only pending requests assigned to them
+   *   - ADMIN: all requests
+   *   - EMPLOYEE: only their own requests
+   * Detail: Get single request with full approval trail
    */
   @Get()
   @Permissions('read:attendance_regularization', 'read:leave')
-  async getAll(
+  async get(
     @CurrentUser('tenantId') tenantId: string,
     @CurrentUser('sub') userId: string,
     @CurrentUser('role') role: string,
+    @Query('id') id?: string,
     @Query('limit') limit?: number,
     @Query('page') page?: number,
     @Query('module') module?: string,
     @Query('status') status?: string,
   ) {
+    if (id) {
+      const request = await this.requestService.getRequestById(
+        tenantId,
+        id,
+        userId,
+        role,
+      );
+      return { message: 'common.fetched', data: request };
+    }
+
     const result = await this.requestService.getRequests(
       tenantId,
       userId,
@@ -48,27 +60,6 @@ export class RequestController {
       },
     );
     return { message: 'common.fetched', data: result.data, meta: result.meta };
-  }
-
-  /**
-   * GET /requests?id=xxx
-   * Get single request with full approval trail
-   */
-  @Get()
-  @Permissions('read:attendance_regularization', 'read:leave')
-  async getById(
-    @CurrentUser('tenantId') tenantId: string,
-    @CurrentUser('sub') userId: string,
-    @CurrentUser('role') role: string,
-    @Query('id') id: string,
-  ) {
-    const request = await this.requestService.getRequestById(
-      tenantId,
-      id,
-      userId,
-      role,
-    );
-    return { message: 'common.fetched', data: request };
   }
 
   /**

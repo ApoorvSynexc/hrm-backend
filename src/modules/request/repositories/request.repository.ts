@@ -198,7 +198,6 @@ export class RequestRepository {
       where: {
         tenantId,
         ...(options.module && { module: options.module as any }),
-        ...(options.status && { status: options.status as any }),
       },
       include: {
         workflow: { select: { id: true, name: true, module: true } },
@@ -219,7 +218,6 @@ export class RequestRepository {
       where: {
         tenantId,
         ...(options.module && { module: options.module as any }),
-        ...(options.status && { status: options.status as any }),
       },
     });
 
@@ -262,7 +260,9 @@ export class RequestRepository {
       where: {
         tenantId,
         regularization: {
-          userId,
+          is: {
+            userId,
+          },
         },
         ...(options.module && { module: options.module as any }),
       },
@@ -285,7 +285,9 @@ export class RequestRepository {
       where: {
         tenantId,
         regularization: {
-          userId,
+          is: {
+            userId,
+          },
         },
         ...(options.module && { module: options.module as any }),
       },

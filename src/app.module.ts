@@ -19,6 +19,7 @@ import { DesignationModule } from './modules/designation/designation.module.js';
 import { WorkingScheduleModule } from './modules/working-schedule/working-schedule.module.js';
 import { RegularizationModule } from './modules/regularization/regularization.module.js';
 import { ApprovalWorkflowModule } from './modules/approval-workflow/approval-workflow.module.js';
+import { RequestModule } from './modules/request/request.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ApprovalWorkflowModule } from './modules/approval-workflow/approval-wor
     WorkingScheduleModule,
     RegularizationModule,
     ApprovalWorkflowModule,
+    RequestModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,7 +29,22 @@ CREATE TYPE "Status" AS ENUM ('ACTIVE', 'INACTIVE', 'DELETED');
 CREATE TYPE "PermissionAction" AS ENUM ('manage', 'create', 'read', 'update', 'delete', 'approve');
 
 -- CreateEnum
-CREATE TYPE "PermissionSubject" AS ENUM ('all', 'tenant', 'user', 'role', 'permission', 'employee', 'department', 'designation', 'leave', 'payroll', 'attendance', 'attendance_regularization', 'working_schedule');
+CREATE TYPE "PermissionSubject" AS ENUM ('all', 'tenant', 'user', 'role', 'permission', 'employee', 'department', 'designation', 'leave', 'payroll', 'attendance', 'attendance_regularization', 'working_schedule', 'approval_workflow');
+
+-- CreateEnum
+CREATE TYPE "ApprovalModule" AS ENUM ('REGULARIZATION', 'LEAVE');
+
+-- CreateEnum
+CREATE TYPE "ApproverType" AS ENUM ('DIRECT_MANAGER', 'ROLE', 'SPECIFIC_USER');
+
+-- CreateEnum
+CREATE TYPE "ApprovalInstanceStatus" AS ENUM ('IN_PROGRESS', 'APPROVED', 'REJECTED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "ApprovalStepActionMode" AS ENUM ('APPROVAL_REQUIRED', 'INTIMATION_ONLY', 'APPROVAL_OPTIONAL');
+
+-- CreateEnum
+CREATE TYPE "StepInstanceStatus" AS ENUM ('NOT_STARTED', 'PENDING', 'APPROVED', 'REJECTED', 'SKIPPED');
 
 -- CreateTable
 CREATE TABLE "Tenant" (
@@ -108,6 +123,7 @@ CREATE TABLE "User" (
     "exitDate" TIMESTAMP(3),
     "employmentStatus" "EmploymentStatus" NOT NULL DEFAULT 'ACTIVE',
     "salary" DECIMAL(12,2),
+    "reportingManagerId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -250,6 +266,7 @@ CREATE TABLE "Leave" (
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
     "reason" TEXT,
+    "approvalInstanceId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -331,6 +348,7 @@ CREATE TABLE "AttendanceRegularization" (
     "reviewedByUserId" TEXT,
     "reviewedAt" TIMESTAMP(3),
     "rejectionReason" TEXT,
+    "approvalInstanceId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -397,12 +415,77 @@ CREATE TABLE "AttendancePolicy" (
     "validUntil" TIMESTAMP(3),
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "status" "Status" NOT NULL DEFAULT 'ACTIVE',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "createdBy" TEXT,
     "updatedBy" TEXT,
+
+    CONSTRAINT "AttendancePolicy_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ApprovalWorkflow" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "module" "ApprovalModule" NOT NULL,
+    "description" TEXT,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "isSystem" BOOLEAN NOT NULL DEFAULT false,
+    "status" "Status" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "AttendancePolicy_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ApprovalWorkflow_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ApprovalStep" (
+    "id" TEXT NOT NULL,
+    "workflowId" TEXT NOT NULL,
+    "stepNumber" INTEGER NOT NULL,
+    "approverType" "ApproverType" NOT NULL,
+    "approverRoleId" TEXT,
+    "approverUserId" TEXT,
+    "actionMode" "ApprovalStepActionMode" NOT NULL DEFAULT 'INTIMATION_ONLY',
+    "escalationThresholdHours" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ApprovalStep_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RequestApprovalInstance" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "workflowId" TEXT NOT NULL,
+    "module" "ApprovalModule" NOT NULL,
+    "requestId" TEXT NOT NULL,
+    "currentStep" INTEGER NOT NULL DEFAULT 1,
+    "status" "ApprovalInstanceStatus" NOT NULL DEFAULT 'IN_PROGRESS',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RequestApprovalInstance_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "RequestApprovalStepInstance" (
+    "id" TEXT NOT NULL,
+    "instanceId" TEXT NOT NULL,
+    "stepId" TEXT NOT NULL,
+    "stepNumber" INTEGER NOT NULL,
+    "approverId" TEXT,
+    "status" "StepInstanceStatus" NOT NULL DEFAULT 'NOT_STARTED',
+    "pendingSince" TIMESTAMP(3),
+    "comment" TEXT,
+    "rejectionReason" TEXT,
+    "reviewedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RequestApprovalStepInstance_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -434,6 +517,9 @@ CREATE INDEX "User_departmentId_tenantId_idx" ON "User"("departmentId", "tenantI
 
 -- CreateIndex
 CREATE INDEX "User_workingScheduleId_idx" ON "User"("workingScheduleId");
+
+-- CreateIndex
+CREATE INDEX "User_reportingManagerId_idx" ON "User"("reportingManagerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_tenantId_email_key" ON "User"("tenantId", "email") WHERE ("status" != 'DELETED');
@@ -508,6 +594,9 @@ CREATE INDEX "Designation_tenantId_idx" ON "Designation"("tenantId");
 CREATE UNIQUE INDEX "Designation_id_tenantId_key" ON "Designation"("id", "tenantId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Leave_approvalInstanceId_key" ON "Leave"("approvalInstanceId");
+
+-- CreateIndex
 CREATE INDEX "Leave_tenantId_idx" ON "Leave"("tenantId");
 
 -- CreateIndex
@@ -560,6 +649,9 @@ CREATE INDEX "AttendanceLog_userId_idx" ON "AttendanceLog"("userId");
 
 -- CreateIndex
 CREATE INDEX "AttendanceLog_tenantId_checkIn_idx" ON "AttendanceLog"("tenantId", "checkIn");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AttendanceRegularization_approvalInstanceId_key" ON "AttendanceRegularization"("approvalInstanceId");
 
 -- CreateIndex
 CREATE INDEX "AttendanceRegularization_tenantId_idx" ON "AttendanceRegularization"("tenantId");
@@ -616,7 +708,52 @@ CREATE INDEX "AttendancePolicy_tenantId_scopeLevel_idx" ON "AttendancePolicy"("t
 CREATE INDEX "AttendancePolicy_tenantId_isActive_validFrom_idx" ON "AttendancePolicy"("tenantId", "isActive", "validFrom");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AttendancePolicy_tenantId_scopeLevel_departmentId_roleId_userId_teamId_validFrom_key" ON "AttendancePolicy"("tenantId", "scopeLevel", "departmentId", "roleId", "userId", "teamId", "validFrom");
+CREATE UNIQUE INDEX "AttendancePolicy_tenantId_scopeLevel_departmentId_roleId_us_key" ON "AttendancePolicy"("tenantId", "scopeLevel", "departmentId", "roleId", "userId", "teamId", "validFrom");
+
+-- CreateIndex
+CREATE INDEX "ApprovalWorkflow_tenantId_idx" ON "ApprovalWorkflow"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "ApprovalWorkflow_tenantId_module_isDefault_idx" ON "ApprovalWorkflow"("tenantId", "module", "isDefault");
+
+-- CreateIndex
+CREATE INDEX "ApprovalWorkflow_tenantId_module_status_idx" ON "ApprovalWorkflow"("tenantId", "module", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ApprovalWorkflow_tenantId_name_key" ON "ApprovalWorkflow"("tenantId", "name");
+
+-- CreateIndex
+CREATE INDEX "ApprovalStep_workflowId_idx" ON "ApprovalStep"("workflowId");
+
+-- CreateIndex
+CREATE INDEX "ApprovalStep_approverRoleId_idx" ON "ApprovalStep"("approverRoleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ApprovalStep_workflowId_stepNumber_key" ON "ApprovalStep"("workflowId", "stepNumber");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalInstance_tenantId_idx" ON "RequestApprovalInstance"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalInstance_requestId_idx" ON "RequestApprovalInstance"("requestId");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalInstance_tenantId_module_idx" ON "RequestApprovalInstance"("tenantId", "module");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalInstance_tenantId_status_idx" ON "RequestApprovalInstance"("tenantId", "status");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalStepInstance_instanceId_idx" ON "RequestApprovalStepInstance"("instanceId");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalStepInstance_approverId_idx" ON "RequestApprovalStepInstance"("approverId");
+
+-- CreateIndex
+CREATE INDEX "RequestApprovalStepInstance_approverId_status_idx" ON "RequestApprovalStepInstance"("approverId", "status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RequestApprovalStepInstance_instanceId_stepNumber_key" ON "RequestApprovalStepInstance"("instanceId", "stepNumber");
 
 -- AddForeignKey
 ALTER TABLE "WorkingSchedule" ADD CONSTRAINT "WorkingSchedule_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -638,6 +775,9 @@ ALTER TABLE "User" ADD CONSTRAINT "User_designationId_fkey" FOREIGN KEY ("design
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_workingScheduleId_fkey" FOREIGN KEY ("workingScheduleId") REFERENCES "WorkingSchedule"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_reportingManagerId_fkey" FOREIGN KEY ("reportingManagerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Contact" ADD CONSTRAINT "Contact_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -679,6 +819,9 @@ ALTER TABLE "Leave" ADD CONSTRAINT "Leave_tenantId_fkey" FOREIGN KEY ("tenantId"
 ALTER TABLE "Leave" ADD CONSTRAINT "Leave_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Leave" ADD CONSTRAINT "Leave_approvalInstanceId_fkey" FOREIGN KEY ("approvalInstanceId") REFERENCES "RequestApprovalInstance"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Payroll" ADD CONSTRAINT "Payroll_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -712,6 +855,9 @@ ALTER TABLE "AttendanceRegularization" ADD CONSTRAINT "AttendanceRegularization_
 ALTER TABLE "AttendanceRegularization" ADD CONSTRAINT "AttendanceRegularization_reviewedByUserId_fkey" FOREIGN KEY ("reviewedByUserId") REFERENCES "User"("id") ON DELETE NO ACTION ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "AttendanceRegularization" ADD CONSTRAINT "AttendanceRegularization_approvalInstanceId_fkey" FOREIGN KEY ("approvalInstanceId") REFERENCES "RequestApprovalInstance"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Holiday" ADD CONSTRAINT "Holiday_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -734,3 +880,30 @@ ALTER TABLE "AttendancePolicy" ADD CONSTRAINT "AttendancePolicy_roleId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "AttendancePolicy" ADD CONSTRAINT "AttendancePolicy_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ApprovalWorkflow" ADD CONSTRAINT "ApprovalWorkflow_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ApprovalStep" ADD CONSTRAINT "ApprovalStep_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "ApprovalWorkflow"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ApprovalStep" ADD CONSTRAINT "ApprovalStep_approverRoleId_fkey" FOREIGN KEY ("approverRoleId") REFERENCES "Role"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ApprovalStep" ADD CONSTRAINT "ApprovalStep_approverUserId_fkey" FOREIGN KEY ("approverUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RequestApprovalInstance" ADD CONSTRAINT "RequestApprovalInstance_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RequestApprovalInstance" ADD CONSTRAINT "RequestApprovalInstance_workflowId_fkey" FOREIGN KEY ("workflowId") REFERENCES "ApprovalWorkflow"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RequestApprovalStepInstance" ADD CONSTRAINT "RequestApprovalStepInstance_instanceId_fkey" FOREIGN KEY ("instanceId") REFERENCES "RequestApprovalInstance"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RequestApprovalStepInstance" ADD CONSTRAINT "RequestApprovalStepInstance_stepId_fkey" FOREIGN KEY ("stepId") REFERENCES "ApprovalStep"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RequestApprovalStepInstance" ADD CONSTRAINT "RequestApprovalStepInstance_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -683,6 +683,7 @@ model ApprovalStep {
 
   @@unique([workflowId, stepNumber])
   @@index([workflowId])
+  @@index([approverRoleId])
 }
 
 model RequestApprovalInstance {

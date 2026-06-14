@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ApprovalEngineService } from './approval-engine.service.js';
+import { ApprovalEngineService } from '../approval-engine.service.js';
 
 @Injectable()
 export class ApprovalEscalationService {

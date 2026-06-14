@@ -427,10 +427,12 @@ model Leave {
   startDate    DateTime
   endDate      DateTime
   reason       String?
+  approvalInstanceId String? @unique
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approvalInstance RequestApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([userId])
@@ -701,6 +703,7 @@ model RequestApprovalInstance {
   workflow       ApprovalWorkflow              @relation(fields: [workflowId], references: [id], onDelete: Restrict)
   stepInstances  RequestApprovalStepInstance[]
   regularization AttendanceRegularization?
+  leave          Leave?
 
   @@index([tenantId])
   @@index([requestId])

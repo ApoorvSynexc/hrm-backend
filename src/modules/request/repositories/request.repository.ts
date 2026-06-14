@@ -194,11 +194,20 @@ export class RequestRepository {
   ) {
     const skip = (options.page - 1) * options.limit;
 
+    const whereClause: any = {
+      tenantId,
+      ...(options.module && { module: options.module as any }),
+      ...(options.status && {
+        stepInstances: {
+          some: {
+            status: options.status as any,
+          },
+        },
+      }),
+    };
+
     const instances = await this.prisma.requestApprovalInstance.findMany({
-      where: {
-        tenantId,
-        ...(options.module && { module: options.module as any }),
-      },
+      where: whereClause,
       include: {
         workflow: { select: { id: true, name: true, module: true } },
         stepInstances: {
@@ -215,10 +224,7 @@ export class RequestRepository {
     });
 
     const total = await this.prisma.requestApprovalInstance.count({
-      where: {
-        tenantId,
-        ...(options.module && { module: options.module as any }),
-      },
+      where: whereClause,
     });
 
     const requests = await Promise.all(

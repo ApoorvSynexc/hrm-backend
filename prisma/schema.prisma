@@ -119,6 +119,12 @@ enum ApprovalInstanceStatus {
   CANCELLED
 }
 
+enum ApprovalStepActionMode {
+  APPROVAL_REQUIRED
+  INTIMATION_ONLY
+  APPROVAL_OPTIONAL
+}
+
 enum StepInstanceStatus {
   NOT_STARTED
   PENDING
@@ -669,12 +675,11 @@ model ApprovalStep {
   id             String       @id @default(cuid())
   workflowId     String
   stepNumber     Int
-  name           String?
   approverType         ApproverType
   approverRoleId       String?
   approverUserId       String?
-  isSkippable          Boolean      @default(false)
-  escalationAfterHours Int?         // null = no escalation; 48 = escalate after 2 days
+  actionMode           ApprovalStepActionMode @default(INTIMATION_ONLY)  // Step behavior: APPROVAL_REQUIRED, INTIMATION_ONLY, APPROVAL_OPTIONAL
+  escalationThresholdHours Int?      // Escalation after X hours; null = no escalation; only for APPROVAL steps
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 

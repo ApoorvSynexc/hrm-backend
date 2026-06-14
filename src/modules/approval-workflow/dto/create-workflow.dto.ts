@@ -17,11 +17,6 @@ export class CreateStepDto {
   @Min(1)
   stepNumber: number;
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  name?: string;
-
   @IsIn(['DIRECT_MANAGER', 'ROLE', 'SPECIFIC_USER'])
   approverType: 'DIRECT_MANAGER' | 'ROLE' | 'SPECIFIC_USER';
 
@@ -33,9 +28,14 @@ export class CreateStepDto {
   @IsOptional()
   approverUserId?: string;
 
-  @IsBoolean()
+  @IsInt()
   @IsOptional()
-  isSkippable?: boolean;
+  @Min(1)
+  escalationThresholdHours?: number;
+
+  @IsIn(['APPROVAL_REQUIRED', 'INTIMATION_ONLY', 'APPROVAL_OPTIONAL'])
+  @IsOptional()
+  actionMode?: string;
 }
 
 export class CreateWorkflowDto {
